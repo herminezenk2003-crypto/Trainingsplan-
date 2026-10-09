@@ -251,3 +251,24 @@ input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--acce
 canvas.anim, .mm-stage { border-radius: 16px; }
 #toast { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 6px 20px rgba(0,0,0,.18); }
 #timerbar { border-radius: 20px; }
+
+/* GPS-Lauf */
+.gps .btn.primary { margin-top: 0; }
+.gps p.muted { margin: 10px 2px 0; }
+.gps-status { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; min-height: 20px; }
+.gps-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--run); box-shadow: 0 0 0 0 color-mix(in srgb, var(--run) 60%, transparent); animation: gpsPulse 1.6s infinite; }
+.gps-dot.wait { background: var(--muted); }
+@keyframes gpsPulse { 70% { box-shadow: 0 0 0 10px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.gps-big { text-align: center; margin: 10px 0 4px; }
+.gps-big b { font-size: 64px; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; line-height: 1; color: var(--run); }
+.gps-big span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.gps .stats b { font-variant-numeric: tabular-nums; font-size: 24px; }
+.gps .btnrow { margin-top: 12px; margin-bottom: 0; }
+p.run-target.card { padding: 12px 16px; background: var(--run-soft); border-color: transparent; }
+svg.route { display: block; width: 100%; height: auto; margin: 12px 0 4px; background: var(--anim-bg); border-radius: 16px; }
+svg.route polyline { fill: none; stroke: var(--run); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+svg.route .s { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+svg.route .e { fill: var(--danger); stroke: var(--card); stroke-width: 2; }
+.splits { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-top: 8px; }
+.splits div { background: var(--bg); border-radius: 12px; padding: 6px 10px; display: flex; flex-direction: column; }
+.splits span { font-size: 12px; color: var(--muted); } .splits b { font-variant-numeric: tabular-nums; }

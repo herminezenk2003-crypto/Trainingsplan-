@@ -203,7 +203,7 @@ function viewStart() {
       html += `<section class="card"><h2>Andere Einheiten</h2><div class="list">${others.map((s) => `<div class="row"><div><b>${esc(s.name)}</b><div class="muted small">${s.type === 'lauf' ? esc(s.runTarget || 'Laufen') : `${s.items.length} Übungen`}</div></div><button type="button" class="btn small" data-a="start" data-plan="${plan.id}" data-session="${s.id}" ${db.workout ? 'disabled' : ''}>Starten</button></div>`).join('')}</div></section>`;
     }
   }
-  html += `<div class="btnrow"><button type="button" class="btn" data-a="quickRun" ${db.workout ? 'disabled' : ''}>Lauf eintragen</button><button type="button" class="btn" data-a="freeWorkout" ${db.workout ? 'disabled' : ''}>Freies Training</button></div>`;
+  html += `<div class="btnrow"><button type="button" class="btn" data-a="quickRun" ${db.workout ? 'disabled' : ''}>🏃 Laufen</button><button type="button" class="btn" data-a="freeWorkout" ${db.workout ? 'disabled' : ''}>Freies Training</button></div>`;
   return html;
 }
 function sessionPreview(s) {
@@ -235,7 +235,9 @@ function viewWorkout() {
   if (!w) { ui.view = null; return viewStart(); }
   let html = header(w.name, 'leaveWorkout', timerBtn);
   if (w.type === 'lauf') {
-    html += `<section class="card">${w.runTarget ? `<p class="run-target">🏃 ${esc(w.runTarget)}</p>` : ''}
+    if (w.runTarget) html += `<p class="run-target card">🏃 ${esc(w.runTarget)}</p>`;
+    html += gpsCard(w);
+    html += `<section class="card" ${w.gps?.state === 'running' ? 'hidden' : ''}>${w.gps ? '' : '<p class="muted small">Oder nach dem Lauf von Hand eintragen:</p>'}
       <label class="field"><span>Strecke (km)</span><input inputmode="decimal" data-c="run" data-k="km" value="${esc(w.run.km)}" placeholder="z. B. 5,2"></label>
       <label class="field"><span>Zeit (Minuten)</span><input inputmode="decimal" data-c="run" data-k="min" value="${esc(w.run.min)}" placeholder="z. B. 32"></label>
       <div class="pace" id="pace">${pace(w.run.km, w.run.min) || '&nbsp;'}</div></section>`;
@@ -263,13 +265,22 @@ function viewWorkout() {
     <div class="btnrow"><button type="button" class="btn danger" data-a="cancelWorkout">Verwerfen</button><button type="button" class="btn primary" data-a="finishWorkout">Training beenden</button></div>`;
   return html;
 }
+function runForLog(w) {
+  const r = { km: num(w.run.km), min: num(w.run.min) };
+  const route = gpsRouteForLog(w.gps);
+  if (route) r.route = route;
+  if (w.gps?.splits?.length) r.splits = w.gps.splits.map((ms, i) => Math.round((ms - (w.gps.splits[i - 1] || 0)) / 1000));
+  return r;
+}
 async function finishWorkout() {
   const w = db.workout;
   const items = w.items.map((it) => ({ exId: it.exId, sets: it.sets.filter((s) => s.done).map((s) => ({ reps: s.reps, weight: s.weight })) })).filter((it) => it.sets.length);
   if (w.type === 'kraft' && !items.length && !(await ask('Du hast noch keinen Satz abgehakt. Trotzdem beenden?'))) return;
+  if (w.gps?.state === 'running' || w.gps?.state === 'paused') { if (!(await ask('GPS-Aufzeichnung beenden und Lauf speichern?'))) return; gpsStop(); }
   if (w.type === 'lauf' && !num(w.run.km) && !num(w.run.min) && !(await ask('Keine Strecke oder Zeit eingetragen. Trotzdem speichern?'))) return;
   db.logs.push({ id: uid(), date: w.started, end: new Date().toISOString(), planId: w.planId, sessionId: w.sessionId, name: w.name, type: w.type,
-    items, run: w.type === 'lauf' ? { km: num(w.run.km), min: num(w.run.min) } : null, note: w.note });
+    items, run: w.type === 'lauf' ? runForLog(w) : null, note: w.note });
+  gpsCleanup();
   if (timer.target) clearTimer();
   db.workout = null; save();
   toast(w.type === 'lauf' ? 'Lauf gespeichert 🏃' : 'Training gespeichert 💪');
@@ -431,7 +442,7 @@ function logDetail(id) {
   if (!l) return '';
   const dur = l.end ? Math.round((new Date(l.end) - new Date(l.date)) / 60000) : null;
   return `<h2>${esc(l.name)}</h2><div class="muted">${fmtDate(l.date)}${dur && l.type === 'kraft' ? ` · ${dur} Min` : ''}</div>
-    ${l.type === 'lauf' ? `<div class="stats"><div><b>${fmtNum(l.run?.km) || '–'}</b><span>km</span></div><div><b>${fmtNum(l.run?.min) || '–'}</b><span>Minuten</span></div><div><b>${pace(l.run?.km, l.run?.min).replace(' min/km', '') || '–'}</b><span>min/km</span></div></div>`
+    ${l.type === 'lauf' ? `<div class="stats"><div><b>${fmtNum(l.run?.km) || '–'}</b><span>km</span></div><div><b>${fmtNum(l.run?.min) || '–'}</b><span>Minuten</span></div><div><b>${pace(l.run?.km, l.run?.min).replace(' min/km', '') || '–'}</b><span>min/km</span></div></div>${l.run?.route ? routeSVG(l.run.route) : ''}${l.run?.splits?.length ? `<h3>Kilometerzeiten</h3><div class="splits">${l.run.splits.map((sec, i) => `<div><span>km ${i + 1}</span><b>${Math.floor(sec / 60)}:${pad(sec % 60)}</b></div>`).join('')}</div>` : ''}`
       : l.items.map((it) => `<h3>${esc(exById(it.exId).name)}</h3><div class="muted">${it.sets.map((s) => `${esc(s.reps || '?')}${s.weight ? ` × ${esc(s.weight)} kg` : ''}`).join(' · ')}</div>`).join('')}
     ${l.note ? `<h3>Notiz</h3><p>${esc(l.note)}</p>` : ''}
     <div class="btnrow"><button type="button" class="btn danger" data-a="delLog" data-id="${l.id}">Löschen</button></div>`;
@@ -686,6 +697,10 @@ const A = {
   start: (d) => startWorkout(d.plan, d.session),
   openWorkout: () => go('start', { name: 'workout' }),
   leaveWorkout: () => go('start'),
+  gpsStart: () => gpsStart(),
+  gpsPause: () => gpsPause(),
+  gpsResume: () => gpsResume(),
+  gpsStop: async () => { if (await ask('Aufzeichnung beenden?')) gpsStop(); },
   quickRun: () => { db.workout = { planId: null, sessionId: null, name: 'Laufen', type: 'lauf', started: new Date().toISOString(), items: [], run: { km: '', min: '' }, note: '' }; save(); go('start', { name: 'workout' }); },
   freeWorkout: () => { db.workout = { planId: null, sessionId: null, name: 'Freies Training', type: 'kraft', started: new Date().toISOString(), items: [], warmup: WARMUP.slice(), cooldown: COOLDOWN.slice(), run: { km: '', min: '' }, note: '' }; save(); go('start', { name: 'workout' }); },
   toggleSet: (d) => {
@@ -711,7 +726,7 @@ const A = {
   moveWorkoutEx: (d) => { const it = db.workout.items, i = +d.i, j = i + +d.d; if (j >= 0 && j < it.length) [it[i], it[j]] = [it[j], it[i]]; save(); closeModal(); render(); },
   removeWorkoutEx: (d) => { db.workout.items.splice(+d.i, 1); save(); closeModal(); render(); },
   finishWorkout,
-  cancelWorkout: async () => { if (!(await ask('Training verwerfen? Eingetragene Sätze gehen verloren.'))) return; if (timer.target) clearTimer(); db.workout = null; save(); go('start'); },
+  cancelWorkout: async () => { if (!(await ask('Training verwerfen? Eingetragene Sätze gehen verloren.'))) return; if (timer.target) clearTimer(); gpsCleanup(); db.workout = null; save(); go('start'); },
   calMove: (d) => { ui.cal = new Date(ui.cal.getFullYear(), ui.cal.getMonth() + +d.d, 1); ui.calDay = null; render(); },
   calDay: (d) => { ui.calDay = ui.calDay === d.k ? null : d.k; render(); },
   showLog: (d) => modal(logDetail(d.id)),
@@ -772,5 +787,6 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 // ---------- Start ----------
 if (db.workout) ui.view = { name: 'workout' };
 render();
+gpsResumeIfRunning();
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
