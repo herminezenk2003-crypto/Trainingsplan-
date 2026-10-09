@@ -272,3 +272,5 @@ svg.route .e { fill: var(--danger); stroke: var(--card); stroke-width: 2; }
 .splits { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; margin-top: 8px; }
 .splits div { background: var(--bg); border-radius: 12px; padding: 6px 10px; display: flex; flex-direction: column; }
 .splits span { font-size: 12px; color: var(--muted); } .splits b { font-variant-numeric: tabular-nums; }
+.btn.gpx { margin: 0 0 14px; }
+.gpx-link { display: block; margin-top: 6px; font-size: 15px; }

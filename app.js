@@ -430,7 +430,7 @@ function viewHistory() {
   const monthLogs = db.logs.filter((l) => { const d = new Date(l.date); return d.getMonth() === m.getMonth() && d.getFullYear() === m.getFullYear(); });
   const km = monthLogs.reduce((a, l) => a + (l.run?.km || 0), 0);
   const shown = (ui.calDay ? db.logs.filter((l) => dayKey(l.date) === ui.calDay) : db.logs).slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, ui.calDay ? 20 : 15);
-  return header('Verlauf') + weekCard() + `<section class="card">
+  return header('Verlauf') + weekCard() + gpxButton('btn gpx') + `<section class="card">
     <div class="calhead"><button type="button" class="icon" data-a="calMove" data-d="-1" aria-label="Voriger Monat">‹</button><h2>${MONTHS[m.getMonth()]} ${m.getFullYear()}</h2><button type="button" class="icon" data-a="calMove" data-d="1" aria-label="Nächster Monat">›</button></div>
     <div class="cal">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => `<div class="dow">${d}</div>`).join('')}${cells}</div>
     <div class="legend"><span><b class="k"></b>Kraft</span><span><b class="r"></b>Laufen</span></div>
@@ -761,6 +761,7 @@ const C = {
   pickSearch: (d, el) => { const q = el.value.trim().toLowerCase(); $('#pickList').innerHTML = exList(ui.picker.list.filter((e) => e.name.toLowerCase().includes(q) || (e.muscles || '').toLowerCase().includes(q)), 'pick'); },
   remDay: (d, el) => { const v = +el.value; db.reminder.days = el.checked ? [...new Set([...db.reminder.days, v])] : db.reminder.days.filter((x) => x !== v); save(); },
   remField: (d, el) => { db.reminder[d.k] = d.k === 'alarm' ? +el.value : el.value; save(); },
+  importGpx: (d, el) => { const f = el.files[0]; el.value = ''; if (f) importGpxFile(f); },
   importJson: (d, el) => {
     const file = el.files[0]; if (!file) return;
     file.text().then(async (t) => {

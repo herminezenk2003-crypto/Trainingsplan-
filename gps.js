@@ -121,6 +121,7 @@ function gpsCard(w) {
     return `<section class="card gps">
       <button type="button" class="btn primary" data-a="gpsStart">📍 Lauf mit GPS aufzeichnen</button>
       <p class="muted small">Die App misst Strecke und Zeit selbst. Der Bildschirm bleibt dabei an. Nicht sperren, sonst fehlen Teile der Strecke.</p>
+      ${gpxButton('link gpx-link')}
     </section>`;
   }
   const t = gpsElapsed(g);
@@ -134,7 +135,7 @@ function gpsCard(w) {
     <div class="gps-big"><b id="gpsKm">${(g.m / 1000).toFixed(2).replace('.', ',')}</b><span>km</span></div>
     <div class="stats"><div><b id="gpsTime">${fmtClock(t)}</b><span>Zeit</span></div><div><b id="gpsPace">${fmtPace(t, g.m)}</b><span>min/km</span></div></div>
     ${btns ? `<div class="btnrow">${btns}</div>` : ''}
-    ${g.state === 'done' ? '<p class="muted small">Aufzeichnung beendet. Strecke und Zeit stehen unten und lassen sich noch korrigieren.</p>' : ''}
+    ${g.state === 'done' ? '<p class="muted small">Strecke und Zeit stehen unten und lassen sich noch korrigieren.</p>' : ''}
   </section>`;
 }
 function gpsStatusText(g) {
@@ -182,3 +183,46 @@ function gpsResumeIfRunning() {
   if (g?.state === 'running') { if (g.pts.length) g.gap = 'bridge'; gpsWatchStop(); gpsWatchStart(); gpsLoop(true); gpsKeepAwake(true); }
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') gpsResumeIfRunning(); });
+
+// GPX-Import (z. B. aus Strava): Strecke, Zeit, Kilometerzeiten und Karte übernehmen.
+function parseGpx(text) {
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  const nodes = [...doc.getElementsByTagName('trkpt')];
+  if (nodes.length < 2) throw new Error('keine Strecke');
+  const pts = nodes.map((n) => {
+    const t = n.getElementsByTagName('time')[0]?.textContent;
+    return [+n.getAttribute('lat'), +n.getAttribute('lon'), t ? Date.parse(t) : null];
+  }).filter((p) => isFinite(p[0]) && isFinite(p[1]));
+  let m = 0; const splits = [];
+  const t0 = pts[0][2];
+  for (let i = 1; i < pts.length; i++) {
+    m += gpsDist(pts[i - 1], pts[i]);
+    if (t0 && pts[i][2]) while (m >= (splits.length + 1) * 1000) splits.push(pts[i][2] - t0);
+  }
+  const t1 = pts[pts.length - 1][2];
+  const name = doc.getElementsByTagName('name')[0]?.textContent?.trim() || '';
+  return { pts, m, ms: t0 && t1 ? t1 - t0 : 0, start: t0 ? new Date(t0).toISOString() : null, end: t1 ? new Date(t1).toISOString() : null, splits, name };
+}
+async function importGpxFile(file) {
+  let r;
+  try { r = parseGpx(await file.text()); } catch (e) { toast('Die Datei enthält keine Strecke (GPX)'); return; }
+  const km = Math.round(r.m / 10) / 100, min = r.ms ? Math.round(r.ms / 6000) / 10 : null;
+  const w = db.workout;
+  if (w?.type === 'lauf') {
+    if (w.gps?.state === 'running' || w.gps?.state === 'paused') gpsStop();
+    w.gps = { state: 'done', since: 0, elapsed: r.ms, m: r.m, pts: r.pts, splits: r.splits, gap: false, acc: null };
+    w.run.km = fmtNum(km); w.run.min = min ? fmtNum(min) : w.run.min;
+    if (r.start) w.started = r.start;
+    save(); render(); toast(`Lauf übernommen: ${fmtNum(km)} km`);
+    return;
+  }
+  if (!(await ask(`Lauf mit ${fmtNum(km)} km${min ? ` in ${fmtNum(Math.round(min))} Min` : ''} in den Verlauf übernehmen?`, 'Übernehmen'))) return;
+  const run = { km, min, route: gpsRouteForLog({ pts: r.pts }) };
+  if (r.splits.length) run.splits = r.splits.map((ms, i) => Math.round((ms - (r.splits[i - 1] || 0)) / 1000));
+  db.logs.push({ id: uid(), date: r.start || new Date().toISOString(), end: r.end || new Date().toISOString(), planId: null, sessionId: null,
+    name: r.name && r.name.length < 40 ? r.name : 'Laufen', type: 'lauf', items: [], run, note: '' });
+  save(); render(); toast('Lauf importiert 🏃');
+}
+function gpxButton(cls = 'btn') {
+  return `<label class="${cls}">↥ Lauf aus Strava importieren (GPX)<input type="file" data-c="importGpx" hidden></label>`;
+}
