@@ -2,6 +2,7 @@
 
 Persönliche Trainings-App fürs Handy (iPhone und Android) (Web-App/PWA). Alle Daten bleiben lokal auf dem Gerät.
 
+- Muskelkarte im Reiter „Übungen“ (drehbar, Muskel antippen zeigt passende Übungen); trainierte Muskeln in den Animationen rot markiert
 - Plan erstellen lassen (Fragebogen) oder eigenen Plan bauen
 - Training protokollieren: Sätze, Wiederholungen, Gewicht; Läufe mit Strecke und Zeit
 - Timer und Stoppuhr, bei Zeitübungen direkt pro Satz startbar

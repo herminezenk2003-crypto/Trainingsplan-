@@ -226,3 +226,39 @@ const COOLDOWN = [
 ];
 
 const GROUPS = ['Beine', 'Po & Beinrückseite', 'Brust', 'Schultern', 'Rücken', 'Arme', 'Bauch & Rumpf', 'Sonstiges'];
+
+// ---------- Muskelgruppen ----------
+const MUSCLES = {
+  chest: 'Brust', delts: 'Schultern', traps: 'Nacken & oberer Rücken', lats: 'Latissimus (breiter Rücken)', lowerback: 'Unterer Rücken',
+  biceps: 'Bizeps', triceps: 'Trizeps', forearms: 'Unterarme', abs: 'Bauch', obliques: 'Seitliche Bauchmuskeln',
+  glutes: 'Po', quads: 'Oberschenkel vorne', hamstrings: 'Oberschenkel hinten', calves: 'Waden',
+};
+// Pro Übung: [Hauptmuskeln, unterstützende Muskeln]
+const MUSCLE_MAP = {
+  'goblet-squat': [['quads', 'glutes'], ['abs']], 'kniebeuge': [['quads', 'glutes'], []],
+  'bulgarian-split-squat': [['quads', 'glutes'], ['hamstrings']], 'ausfallschritte': [['quads', 'glutes'], ['hamstrings']],
+  'step-ups': [['quads', 'glutes'], []], 'wadenheben': [['calves'], []],
+  'rdl': [['hamstrings', 'glutes'], ['lowerback']], 'hip-thrust': [['glutes'], ['hamstrings']],
+  'einbeiniges-kreuzheben': [['hamstrings', 'glutes'], ['lowerback']], 'glute-bridge': [['glutes'], ['hamstrings']],
+  'kh-bankdruecken': [['chest'], ['triceps', 'delts']], 'schraegbankdruecken': [['chest', 'delts'], ['triceps']],
+  'liegestuetze': [['chest'], ['triceps', 'delts', 'abs']], 'dips': [['chest', 'triceps'], ['delts']], 'kh-flys': [['chest'], ['delts']],
+  'schulterdruecken': [['delts'], ['triceps', 'traps']], 'arnold-press': [['delts'], ['triceps']], 'pike-pushups': [['delts'], ['triceps']],
+  'seitheben': [['delts'], ['traps']], 'reverse-flys': [['delts', 'traps'], []],
+  'klimmzug': [['lats'], ['biceps', 'forearms']], 'chinup': [['lats', 'biceps'], ['forearms']], 'negativ-klimmzug': [['lats'], ['biceps', 'forearms']],
+  'scapula-pullup': [['lats', 'traps'], []], 'kh-rudern': [['lats'], ['biceps', 'traps']], 'vorgebeugtes-rudern': [['lats', 'traps'], ['biceps', 'lowerback']],
+  'australian-pullup': [['lats', 'traps'], ['biceps']], 'kh-rudern-schraeg': [['traps', 'lats'], ['delts']],
+  'bizepscurls': [['biceps'], ['forearms']], 'hammercurls': [['biceps', 'forearms'], []],
+  'trizeps-ueberkopf': [['triceps'], []], 'skull-crusher': [['triceps'], []], 'bank-dips': [['triceps'], ['chest']],
+  'plank': [['abs'], ['obliques']], 'seitstuetz': [['obliques'], ['abs']], 'haengendes-knieheben': [['abs'], ['forearms']],
+  'beinheben-dip': [['abs'], ['triceps']], 'dead-bug': [['abs'], []], 'russian-twist': [['obliques'], ['abs']],
+  'situps': [['abs'], []], 'crunches': [['abs'], []], 'fahrrad-crunches': [['obliques', 'abs'], []], 'beinheben-liegend': [['abs'], []],
+  'reverse-crunch': [['abs'], []], 'mountain-climbers': [['abs'], ['delts', 'quads']], 'hollow-hold': [['abs'], []],
+  'toes-to-bar': [['abs'], ['lats', 'forearms']],
+};
+const GROUP_MUSCLES = { 'Beine': ['quads'], 'Po & Beinrückseite': ['glutes', 'hamstrings'], 'Brust': ['chest'], 'Schultern': ['delts'],
+  'Rücken': ['lats'], 'Arme': ['biceps', 'triceps'], 'Bauch & Rumpf': ['abs'] };
+function musclesOf(ex) {
+  const m = MUSCLE_MAP[ex.id];
+  if (m) return { p: m[0], s: m[1] };
+  return { p: ex.muscleIds || GROUP_MUSCLES[ex.group] || [], s: [] };
+}

@@ -242,6 +242,7 @@ function boundsOf(spec, A, B) {
 
 // Menschliche Figur: Körperteile als abgerundete, sich verjüngende Formen mit Kontur.
 // Erst alle Konturen einer Ebene, dann die Füllungen, damit keine Nähte zwischen den Teilen sichtbar sind.
+const HL_MAIN = '#e5484d', HL_SUP = '#f19a90';
 const SKIN = '#e7b48f', SHIRT = '#2f8f7a', SHORTS = '#3c557a', SHOE = '#f3f4f2', HAIR = '#4b3426', DB = '#4f5b66';
 function shade(hex, f) {
   const n = parseInt(hex.slice(1), 16);
@@ -283,28 +284,28 @@ function drawScene(ctx, spec, s, view, col) {
   const ow = 1.6; // Konturbreite
   // Jede Ebene ist eine Liste von Formen: ['cap', p1, p2, w1, w2, farbe] oder ['circ', p, r, farbe] oder ['head', ...]
   // Muskeln als Ellipsen auf den Gliedmaßen: k = Position entlang des Segments, off > 0 = Vorderseite
-  const muscle = (p1, p2, k, off, rx, ry, color) => {
+  const muscle = (p1, p2, k, off, rx, ry, color, id) => {
     const a = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
     const c = along(p1, p2, k);
-    return ['ell', [c[0] + Math.sin(a) * off, c[1] - Math.cos(a) * off], rx, ry, a, color];
+    return ['ell', [c[0] + Math.sin(a) * off, c[1] - Math.cos(a) * off], rx, ry, a, color, id];
   };
   const leg = (l, f) => [
     ['circ', s.hip, 10, shade(SHORTS, f)],
     ['cap', s.hip, l.knee, 19, 12, shade(SKIN, f)],
-    muscle(s.hip, l.knee, 0.5, 3.5, 15, 8.5, shade(SKIN, f)),   // Oberschenkel vorn
-    muscle(s.hip, l.knee, 0.45, -3, 13, 7, shade(SKIN, f)),     // Beinbeuger
+    muscle(s.hip, l.knee, 0.5, 3.5, 15, 8.5, shade(SKIN, f), 'quads'),   // Oberschenkel vorn
+    muscle(s.hip, l.knee, 0.45, -3, 13, 7, shade(SKIN, f), 'hamstrings'),     // Beinbeuger
     ['cap', s.hip, along(s.hip, l.knee, 0.42), 21, 19.5, shade(SHORTS, f)],
     ['cap', l.knee, l.ankle, 12, 7, shade(SKIN, f)],
-    muscle(l.knee, l.ankle, 0.3, -3, 10, 6.2, shade(SKIN, f)),  // Wade
+    muscle(l.knee, l.ankle, 0.3, -3, 10, 6.2, shade(SKIN, f), 'calves'),  // Wade
     ['cap', l.ankle, l.toe, 9, 6.5, shade(SHOE, f)],
   ];
   const arm = (a, f) => [
-    ['circ', s.shoulder, 9, shade(SKIN, f)],                    // Schulter
+    ['circ', s.shoulder, 9, shade(SKIN, f), 'delts'],                    // Schulter
     ['cap', s.shoulder, a.elbow, 12, 9, shade(SKIN, f)],
-    muscle(s.shoulder, a.elbow, 0.55, 2.8, 10, 6, shade(SKIN, f)),   // Bizeps
-    muscle(s.shoulder, a.elbow, 0.45, -2.8, 10, 5.2, shade(SKIN, f)), // Trizeps
+    muscle(s.shoulder, a.elbow, 0.55, 2.8, 10, 6, shade(SKIN, f), 'biceps'),   // Bizeps
+    muscle(s.shoulder, a.elbow, 0.45, -2.8, 10, 5.2, shade(SKIN, f), 'triceps'), // Trizeps
     ['cap', a.elbow, a.hand, 10, 6.5, shade(SKIN, f)],
-    muscle(a.elbow, a.hand, 0.3, 0.8, 8, 5.6, shade(SKIN, f)),        // Unterarm
+    muscle(a.elbow, a.hand, 0.3, 0.8, 8, 5.6, shade(SKIN, f), 'forearms'),        // Unterarm
     ['circ', a.hand, 4.8, shade(SKIN, f)],
   ];
   const tdir = Math.atan2(s.shoulder[1] - s.hip[1], s.shoulder[0] - s.hip[0]);
@@ -316,17 +317,26 @@ function drawScene(ctx, spec, s, view, col) {
     ['cap', s.shoulder, neckTop, 12, 9, SKIN],
     ['cap', s.hip, at(0.62, 1), 20, 30, SHIRT],
     ['cap', at(0.62, 1), s.shoulder, 30, 22, SHIRT],
-    ['ell', at(0.74, 6.5), 9, 7.5, tdir, SHIRT],                // Brust
-    ['ell', at(0.6, -6), 13, 6.5, tdir, SHIRT],                 // Latissimus
-    ['ell', at(0.05, -4.5), 9, 9, tdir, SHORTS],                // Po
+    ['ell', at(0.74, 6.5), 9, 7.5, tdir, SHIRT, 'chest'],       // Brust
+    ['ell', at(0.6, -6), 13, 6.5, tdir, SHIRT, 'lats'],         // Latissimus
+    ['ell', at(0.94, -6), 7, 5, tdir, SHIRT, 'traps'],          // Nacken / oberer Rücken
+    ['ell', at(0.28, -7.5), 8, 3.5, tdir, SHIRT, 'lowerback'],  // unterer Rücken
+    ['ell', at(0.36, 7.5), 14, 4.5, tdir, SHIRT, 'abs'],        // Bauch
+    ['ell', at(0.05, -4.5), 9, 9, tdir, SHORTS, 'glutes'],      // Po
     ['cap', s.hip, at(0.13, 0), 22, 21, SHORTS],
     ['head'],
   ];
-  const drawLayer = (shapes) => {
+  // Trainierte Muskeln: Haupt rot, unterstützend hellrot; markierte Formen liegen über der Kleidung
+  const act = col.active || { p: new Set(), s: new Set() };
+  const hl = (sh) => { const id = sh[sh.length - 1]; return typeof id === 'string' && !id.startsWith('#') && !id.startsWith('rgb') ? (act.p.has(id) || (id === 'abs' && act.p.has('obliques')) ? 'p' : act.s.has(id) || (id === 'abs' && act.s.has('obliques')) ? 's' : null) : null; };
+  const drawLayer = (raw) => {
+    const shapes = raw.filter((sh) => !hl(sh)).concat(raw.filter((sh) => hl(sh)));
     for (const pass of ['outline', 'fill']) {
       const grow = pass === 'outline' ? ow * 2 : 0;
       for (const sh of shapes) {
-        ctx.fillStyle = pass === 'outline' ? col.outline : sh[sh.length - 1];
+        const h = hl(sh);
+        const base = typeof sh[sh.length - 1] === 'string' && (sh[sh.length - 1].startsWith('#') || sh[sh.length - 1].startsWith('rgb')) ? sh[sh.length - 1] : sh[sh.length - 2];
+        ctx.fillStyle = pass === 'outline' ? col.outline : h === 'p' ? HL_MAIN : h === 's' ? HL_SUP : base;
         if (sh[0] === 'cap') { capsulePath(ctx, sh[1], sh[2], sh[3] + grow, sh[4] + grow); ctx.fill(); }
         else if (sh[0] === 'ell') { ctx.beginPath(); ctx.ellipse(sh[1][0], sh[1][1], sh[2] + grow / 2, sh[3] + grow / 2, sh[4], 0, Math.PI * 2); ctx.fill(); }
         else if (sh[0] === 'circ') { ctx.beginPath(); ctx.arc(sh[1][0], sh[1][1], sh[2] + grow / 2, 0, Math.PI * 2); ctx.fill(); }
@@ -394,7 +404,9 @@ function startExerciseAnim() {
   const view = { W, H, sc, ox: (W - bw * sc) / 2 - bb.x0 * sc, oy: (H - bh * sc) / 2 - bb.y0 * sc };
   const css = getComputedStyle(document.documentElement);
   const v = (n) => css.getPropertyValue(n).trim();
-  const col = { outline: v('--anim-outline'), prop: v('--anim-prop') };
+  const ex = typeof exById === 'function' ? exById(cv.dataset.ex) : null;
+  const mus = ex && typeof musclesOf === 'function' ? musclesOf(ex) : { p: [], s: [] };
+  const col = { outline: v('--anim-outline'), prop: v('--anim-prop'), active: { p: new Set(mus.p), s: new Set(mus.s) } };
   const slow = matchMedia('(prefers-reduced-motion: reduce)').matches ? 2 : 1;
   const [h0, up, h1, down] = (spec.tempo || [0.5, 1.2, 0.4, 1.2]).map((x) => x * slow);
   const total = h0 + up + h1 + down;

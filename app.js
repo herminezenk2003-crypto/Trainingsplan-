@@ -129,7 +129,7 @@ function lastSetsFor(exId) {
 function pace(km, min) { km = num(km); min = num(min); if (!km || !min) return ''; const p = min / km; return `${Math.floor(p)}:${pad(Math.round((p % 1) * 60))} min/km`; }
 
 // ---------- UI-Zustand ----------
-const ui = { tab: 'start', view: null, cal: new Date(), calDay: null, exGroup: '', exSearch: '', picker: null };
+const ui = { tab: 'start', view: null, cal: new Date(), calDay: null, exGroup: '', exSearch: '', picker: null, muscle: '', mmAngle: 0 };
 const TABS = [['start', 'Heute', '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>'],
   ['plaene', 'Pläne', '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'],
   ['uebungen', 'Übungen', '<path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"/>'],
@@ -337,18 +337,35 @@ function readGenForm() {
 }
 
 // ---------- Ansicht: Übungen ----------
-function viewExercises() {
+function exFiltered() {
   const q = ui.exSearch.trim().toLowerCase();
-  const list = allExercises().filter((e) => (!ui.exGroup || e.group === ui.exGroup) && (!q || e.name.toLowerCase().includes(q) || (e.muscles || '').toLowerCase().includes(q)));
-  const groups = GROUPS.filter((g) => allExercises().some((e) => e.group === g));
+  const m = ui.muscle;
+  let list = allExercises().filter((e) => !q || e.name.toLowerCase().includes(q) || (e.muscles || '').toLowerCase().includes(q));
+  if (m) {
+    list = list.filter((e) => { const mu = musclesOf(e); return mu.p.includes(m) || mu.s.includes(m) || (m === 'obliques' && mu.p.includes('abs')); });
+    const rank = (e) => (musclesOf(e).p.includes(m) ? 0 : 1);
+    list.sort((a, b) => rank(a) - rank(b));
+  }
+  return list;
+}
+function exMuscleTag(e) {
+  if (!ui.muscle) return '';
+  return musclesOf(e).p.includes(ui.muscle) ? '<span class="tag hl">Hauptmuskel</span>' : '<span class="tag">unterstützend</span>';
+}
+function exResultsHTML() {
+  const list = exFiltered();
+  const bar = ui.muscle ? `<div class="mm-sel"><span>Übungen für <b>${esc(MUSCLES[ui.muscle])}</b> · ${list.length}</span><button type="button" class="link" data-a="mmClear">Alle zeigen</button></div>` : '';
+  return bar + exList(list, 'showEx', exMuscleTag);
+}
+function viewExercises() {
   return header('Übungen') + `<div class="search"><input type="search" placeholder="Übung oder Muskel suchen" data-c="exSearch" value="${esc(ui.exSearch)}"></div>
-    <div class="chips scroll"><button type="button" class="chip-btn ${!ui.exGroup ? 'on' : ''}" data-a="exGroup" data-g="">Alle</button>${groups.map((g) => `<button type="button" class="chip-btn ${ui.exGroup === g ? 'on' : ''}" data-a="exGroup" data-g="${esc(g)}">${esc(g)}</button>`).join('')}</div>
-    <div id="exList">${exList(list)}</div>
+    ${muscleMapCard(ui.muscle, ui.mmAngle)}
+    <div id="exList">${exResultsHTML()}</div>
     <button type="button" class="btn" data-a="newEx">+ Eigene Übung anlegen</button>`;
 }
-function exList(list, action = 'showEx') {
+function exList(list, action = 'showEx', tag = () => '') {
   if (!list.length) return '<p class="empty">Keine Übung gefunden.</p>';
-  return `<div class="card list">${list.map((e) => `<button type="button" class="row ex-row" data-a="${action}" data-id="${e.id}"><div><b>${esc(e.name)}</b>${e.custom ? ' <span class="tag">eigene</span>' : ''}<div class="muted small">${esc(e.muscles || e.group)}</div></div><span class="chev">›</span></button>`).join('')}</div>`;
+  return `<div class="card list">${list.map((e) => `<button type="button" class="row ex-row" data-a="${action}" data-id="${e.id}"><div><b>${esc(e.name)}</b>${e.custom ? ' <span class="tag">eigene</span>' : ''} ${tag(e)}<div class="muted small">${esc(e.muscles || e.group)}</div></div><span class="chev">›</span></button>`).join('')}</div>`;
 }
 function exDetail(id) {
   const ex = exById(id);
@@ -356,12 +373,19 @@ function exDetail(id) {
   const equipNames = { kh: 'Kurzhanteln', bank: 'Hantelbank', stange: 'Klimmzugstange', dip: 'Dipstange' };
   return `<h2>${esc(ex.name)}</h2>
     <div class="muted">${esc(ex.muscles || ex.group)}${ex.equip?.length ? ` · ${ex.equip.map((q) => equipNames[q] || q).join(', ')}` : ' · ohne Geräte'}</div>
+    ${trainedChips(ex)}
     ${typeof ANIM !== 'undefined' && ANIM[ex.id] ? `<canvas class="anim" data-ex="${ex.id}" role="img" aria-label="Animation: ${esc(ex.name)}"></canvas>` : ''}
     ${ex.steps?.length ? `<h3>So geht's</h3><ol>${ex.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
     ${ex.mistakes?.length ? `<h3>Typische Fehler</h3><ul class="warn">${ex.mistakes.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
     <a class="btn" href="${esc(videoUrl(ex))}" target="_blank" rel="noopener">▶ Video ansehen</a>
     ${alts.length ? `<h3>Alternativen</h3><div class="alts">${alts.map((a) => `<button type="button" class="chip-btn" data-a="showEx" data-id="${a.id}">${esc(a.name)}</button>`).join('')}</div>` : ''}
     ${ex.custom ? `<div class="btnrow"><button type="button" class="btn" data-a="editEx" data-id="${ex.id}">Bearbeiten</button><button type="button" class="btn danger" data-a="delEx" data-id="${ex.id}">Löschen</button></div>` : ''}`;
+}
+function trainedChips(ex) {
+  const mu = musclesOf(ex);
+  if (!mu.p.length && !mu.s.length) return '';
+  const chip = (m, main) => `<button type="button" class="mchip ${main ? 'main' : ''}" data-a="muscleFromDetail" data-m="${m}"><i></i>${esc(MUSCLES[m])}</button>`;
+  return `<div class="trained"><span class="muted small">Trainiert:</span>${mu.p.map((m) => chip(m, true)).join('')}${mu.s.map((m) => chip(m, false)).join('')}</div>`;
 }
 function viewExForm(id) {
   const ex = id ? db.customExercises.find((e) => e.id === id) : null;
@@ -632,6 +656,10 @@ const A = {
     save(); toast('Übung gespeichert'); go('uebungen');
   },
   exGroup: (d) => { ui.exGroup = d.g; render(); },
+  pickMuscle: (d) => { ui.muscle = ui.muscle === d.m ? '' : d.m; render(); if (ui.muscle) $('#exList')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
+  mmFlip: () => { ui.mmAngle += 180; mmSetAngle(ui.mmAngle, true); },
+  mmClear: () => { ui.muscle = ''; render(); },
+  muscleFromDetail: (d) => { closeModal(); ui.muscle = d.m; const back = ['lats', 'traps', 'lowerback', 'glutes', 'hamstrings', 'triceps'].includes(d.m); ui.mmAngle = back ? 180 : 0; go('uebungen'); },
   openTimer: () => modal(timerSheet()),
   timerPreset: (d) => { closeModal(); startTimer('down', +d.s); },
   timerCustom: () => {
@@ -714,11 +742,7 @@ const C = {
   sessionType: (d, el) => { planOf(d).sessions[+d.s].type = el.value; save(); render(); },
   runTarget: (d, el) => { planOf(d).sessions[+d.s].runTarget = el.value; save(); },
   itemField: (d, el) => { const it = planOf(d).sessions[+d.s].items[+d.i]; it[d.k] = d.k === 'sets' ? (parseInt(el.value) || 1) : el.value; save(); },
-  exSearch: (d, el) => {
-    ui.exSearch = el.value;
-    const q = el.value.trim().toLowerCase();
-    $('#exList').innerHTML = exList(allExercises().filter((e) => (!ui.exGroup || e.group === ui.exGroup) && (!q || e.name.toLowerCase().includes(q) || (e.muscles || '').toLowerCase().includes(q))));
-  },
+  exSearch: (d, el) => { ui.exSearch = el.value; $('#exList').innerHTML = exResultsHTML(); },
   pickSearch: (d, el) => { const q = el.value.trim().toLowerCase(); $('#pickList').innerHTML = exList(ui.picker.list.filter((e) => e.name.toLowerCase().includes(q) || (e.muscles || '').toLowerCase().includes(q)), 'pick'); },
   remDay: (d, el) => { const v = +el.value; db.reminder.days = el.checked ? [...new Set([...db.reminder.days, v])] : db.reminder.days.filter((x) => x !== v); save(); },
   remField: (d, el) => { db.reminder[d.k] = d.k === 'alarm' ? +el.value : el.value; save(); },

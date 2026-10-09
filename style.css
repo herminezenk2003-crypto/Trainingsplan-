@@ -3,14 +3,14 @@
   --accent: #1f6f5f; --accent-soft: #e2f0ec; --run: #d0782a; --run-soft: #fbeedf; --danger: #b8423a;
   --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
   --on-accent: #ffffff; --scrim: rgba(0,0,0,.4);
-  --anim-bg: #e8eeea; --anim-outline: #26302c; --anim-prop: #a3ada7;
+  --anim-bg: #e8eeea; --anim-outline: #26302c; --anim-prop: #a3ada7; --mm-body: #dfe5e1; --mm-muscle: #d9b39f;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --bg: #111513; --card: #1b201e; --text: #e8ece9; --muted: #98a19c; --line: #2c3330;
-    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; --anim-bg: #34403b; --anim-outline: #0f1412; --anim-prop: #7f8c86; color-scheme: dark; }
+    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; --anim-bg: #34403b; --anim-outline: #0f1412; --anim-prop: #7f8c86; --mm-body: #46524d; --mm-muscle: #a77f6c; color-scheme: dark; }
 }
 :root[data-theme="dark"] { --bg: #111513; --card: #1b201e; --text: #e8ece9; --muted: #98a19c; --line: #2c3330;
-    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; --anim-bg: #34403b; --anim-outline: #0f1412; --anim-prop: #7f8c86; color-scheme: dark; }
+    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; --anim-bg: #34403b; --anim-outline: #0f1412; --anim-prop: #7f8c86; --mm-body: #46524d; --mm-muscle: #a77f6c; color-scheme: dark; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -176,3 +176,28 @@ body.timer-on #toast { bottom: calc(env(safe-area-inset-bottom) + 160px); }
 .perweek select { width: auto; }
 .row.end { gap: 20px; }
 canvas.anim { display: block; width: 100%; height: 220px; margin: 12px 0 4px; border-radius: 12px; background: var(--anim-bg); }
+
+/* Muskelkarte */
+.mm-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mm-head h2 { margin: 0; }
+.mm-head .link { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; padding: 6px 0; cursor: pointer; }
+.mm-stage { perspective: 900px; height: 300px; margin-top: 6px; touch-action: pan-y; user-select: none; -webkit-user-select: none; background: var(--anim-bg); border-radius: 12px; }
+.mm-rot { position: relative; height: 100%; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+.mm-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.mm-face.back { transform: rotateY(180deg); }
+.hidden-face { pointer-events: none; }
+.mm-svg { display: block; width: 100%; height: 100%; padding: 8px 0; box-sizing: border-box; }
+.mm-sil { fill: var(--mm-body); stroke: var(--anim-outline); stroke-width: 1.5; stroke-linejoin: round; }
+.mm-muscles .m { fill: var(--mm-muscle); stroke: var(--anim-outline); stroke-width: 1.2; stroke-linejoin: round; cursor: pointer; transition: fill .15s; -webkit-tap-highlight-color: transparent; }
+.mm-muscles .m:hover { filter: brightness(1.08); }
+.mm-muscles .m.sel { fill: #e5484d; }
+.mm-detail { fill: none; stroke: var(--anim-outline); stroke-width: 1; opacity: .5; pointer-events: none; }
+.mm-shadow { fill: #000; opacity: .12; }
+.mm-label { position: absolute; top: 8px; left: 10px; font-size: 12px; font-weight: 600; color: var(--muted, #888); }
+.mm-sel { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 2px 8px; }
+.mm-sel .link { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; padding: 4px 0; }
+.tag.hl { background: #e5484d22; color: #e5484d; }
+.trained { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 2px; }
+.mchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line, #ccc); background: none; color: inherit; font: inherit; font-size: 13px; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.mchip i { width: 9px; height: 9px; border-radius: 50%; background: #f19a90; }
+.mchip.main i { background: #e5484d; }
