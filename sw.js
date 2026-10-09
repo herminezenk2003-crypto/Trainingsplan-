@@ -1,5 +1,5 @@
 // Offline-Cache. Bei Änderungen an der App VERSION erhöhen.
-const VERSION = 'trainingsplan-v2';
+const VERSION = 'trainingsplan-v3';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'exercises.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {

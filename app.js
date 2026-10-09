@@ -155,7 +155,7 @@ const timerBtn = '<button type="button" class="icon" data-a="openTimer" aria-lab
 const header = (title, back, right = '') => `<header class="top">${back ? `<button type="button" class="back" data-a="${back}" aria-label="Zurück">‹</button>` : ''}<h1>${esc(title)}</h1>${right}</header>`;
 
 const INSTALL_HELP = `<p class="small"><b>iPhone:</b> In Safari auf <b>Teilen</b> (Quadrat mit Pfeil) und dann <b>Zum Home-Bildschirm</b> tippen.</p>
-  <p class="small"><b>Android / Samsung:</b> In Chrome oder Samsung Internet das Menü (⋮ bzw. ≡) öffnen und <b>App installieren</b> oder <b>Zum Startbildschirm hinzufügen</b> wählen.</p>
+  <p class="small"><b>Android / Samsung:</b> Die Seite in <b>Chrome</b> öffnen, Menü (⋮) und <b>App installieren</b> wählen. Samsung Internet zeigt dabei oft eine Play-Protect-Warnung, weil der Browser die App in einem veralteten Format verpackt. Mit Chrome passiert das nicht.</p>
   <p class="muted small">Danach startet die App wie eine normale App und funktioniert auch offline. Jedes Handy hat seine eigenen Daten.</p>`;
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (ui.tab === 'mehr' && !ui.view) render(); });
