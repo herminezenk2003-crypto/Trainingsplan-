@@ -53,14 +53,14 @@ const ANIM = {
 
   // ---------- Brust ----------
   'kh-bankdruecken': { db: 'both', props: [LIE_BENCH],
-    a: { hip: [147, 144], t: 180, h1: [104, 142], f1: [190, 176], f2: [186, 176] },
-    b: { h1: [100, 88] } },
+    a: { hip: [147, 144], t: 180, ua1: 25, fa1: -90, f1: [190, 176], f2: [186, 176] },
+    b: { ua1: -86, fa1: -88 } },
   'schraegbankdruecken': { db: 'both', props: [{ type: 'poly', pts: [[178, 150], [150, 150], [98, 116]] }, { type: 'poly', pts: [[160, 150], [160, 180]], w: 4 }],
-    a: { hip: [150, 142], t: -145, h1: [116, 108], f1: [195, 176], f2: [191, 176] },
-    b: { h1: [114, 54] } },
+    a: { hip: [150, 142], t: -145, ua1: 55, fa1: -95, f1: [195, 176], f2: [191, 176] },
+    b: { ua1: -96, fa1: -96 } },
   'liegestuetze': {
-    a: { hip: [153, 134], t: -25, h1: [200, 174], f1: [70, 172], f2: [74, 172], fd1: 100, fd2: 100 },
-    b: { hip: [155, 158], t: -9 } },
+    a: { hip: [153, 134], t: -25, h1: [198, 174], f1: [70, 172], f2: [74, 172], fd1: 100, fd2: 100 },
+    b: { hip: [156, 155], t: -12 } },
   'dips': { props: [DIP_BAR],
     a: { hip: [161, 73], t: -80, h1: [170, 80], f1: [130, 130], f2: [126, 134], fd1: 150, fd2: 150 },
     b: { hip: [156, 101], t: -70, f1: [126, 158], f2: [122, 162] } },
@@ -70,14 +70,14 @@ const ANIM = {
 
   // ---------- Schultern ----------
   'schulterdruecken': { db: 'both', props: [{ type: 'bench', x: 128, w: 46, y: 140 }, { type: 'poly', pts: [[134, 140], [134, 70]] }],
-    a: { hip: [150, 136], t: -90, h1: [156, 82], f1: [195, 176], f2: [191, 176] },
-    b: { h1: [152, 28] } },
+    a: { hip: [150, 136], t: -90, ua1: 75, fa1: -82, f1: [195, 176], f2: [191, 176] },
+    b: { ua1: -88, fa1: -90 } },
   'arnold-press': { db: 'both',
-    a: { ...STAND, h1: [174, 38], h2: [170, 38] },
-    b: { h1: [162, -18], h2: [158, -18] } },
+    a: { ...STAND, ua1: 82, fa1: -78 },
+    b: { ua1: -88, fa1: -90 } },
   'pike-pushups': {
-    a: { hip: [148, 84], t: 52, h1: [200, 174], f1: [112, 172], f2: [116, 172], fd1: 100, fd2: 100 },
-    b: { hip: [154, 96], t: 60 } },
+    a: { hip: [146, 80], t: 55, h1: [188, 174], f1: [112, 172], f2: [116, 172], fd1: 100, fd2: 100 },
+    b: { hip: [147, 87], t: 61 } },
   'seitheben': { db: 'both',
     a: { ...STAND },
     b: { h1: [216, 42], h2: [212, 42] } },
@@ -96,28 +96,28 @@ const ANIM = {
     a: { hip: [172, 136], t: -90, h1: [175, 20], f1: [172, 222], f2: [168, 222], fd1: 80, fd2: 80 },
     b: { hip: [172, 126], f1: [172, 212], f2: [168, 212] } },
   'kh-rudern': { db: 'one', props: [{ type: 'bench', x: 56, w: 140, y: 140 }],
-    a: { hip: [110, 96], t: -3, h1: [164, 150], h2: [172, 138], f1: [120, 176], f2: [64, 136], fd2: 180 },
-    b: { h1: [132, 104] } },
+    a: { hip: [110, 96], t: -3, ua1: 90, fa1: 90, h2: [172, 138], ik2: true, f1: [120, 176], f2: [64, 136], fd2: 180 },
+    b: { ua1: 200, fa1: 92 } },
   'vorgebeugtes-rudern': { db: 'both',
-    a: { hip: [140, 94], t: -20, h1: [190, 134], f1: [160, 176], f2: [156, 176] },
-    b: { h1: [170, 96] } },
+    a: { hip: [140, 94], t: -20, ua1: 92, fa1: 90, f1: [160, 176], f2: [156, 176] },
+    b: { ua1: 200, fa1: 92 } },
   'australian-pullup': { props: [{ type: 'bar', x1: 150, x2: 235, y: 110, posts: true }],
     a: { hip: [146, 168], t: -3, h1: [200, 110], f1: [60, 172], f2: [64, 172], fd1: -80, fd2: -80 },
     b: { hip: [141, 142], t: -20 } },
   'kh-rudern-schraeg': { db: 'both', props: [{ type: 'poly', pts: [[96, 156], [170, 116]] }, { type: 'poly', pts: [[120, 144], [120, 180]], w: 4 }],
-    a: { hip: [110, 140], t: -35, h1: [154, 166], f1: [80, 176], f2: [76, 176] },
-    b: { h1: [128, 128] } },
+    a: { hip: [110, 140], t: -35, ua1: 90, fa1: 90, f1: [80, 176], f2: [76, 176] },
+    b: { ua1: 192, fa1: 92 } },
 
   // ---------- Arme ----------
   // Curls: Oberarm bleibt am Körper, nur der Unterarm klappt hoch (Gelenkwinkel statt Handziel)
   'bizepscurls': { db: 'both', a: { ...STAND, ua1: 92, fa1: 88 }, b: { ua1: 98, fa1: -62 } },
   'hammercurls': { db: 'both', a: { ...STAND, ua1: 92, fa1: 88 }, b: { ua1: 98, fa1: -62 } },
   'trizeps-ueberkopf': { db: 'center',
-    a: { ...STAND, h1: [148, 30], h2: [146, 30] },
-    b: { h1: [160, -20], h2: [158, -20] } },
+    a: { ...STAND, ua1: -100, fa1: 104 },
+    b: { ua1: -94, fa1: -92 } },
   'skull-crusher': { db: 'both', props: [LIE_BENCH],
-    a: { hip: [147, 144], t: 180, h1: [100, 88], f1: [190, 176], f2: [186, 176] },
-    b: { h1: [76, 124] } },
+    a: { hip: [147, 144], t: 180, ua1: -95, fa1: -94, f1: [190, 176], f2: [186, 176] },
+    b: { ua1: -110, fa1: 176 } },
   'bank-dips': { props: [{ type: 'bench', x: 60, w: 70, y: 140 }],
     a: { hip: [130, 134], t: -90, h1: [128, 138], f1: [205, 176], f2: [201, 176] },
     b: { hip: [132, 162], t: -90 } },
@@ -194,7 +194,8 @@ function fullPose(p) {
   if (!q.h2 && q.h1) q.h2 = [q.h1[0] - 4, q.h1[1]];
   if (!q.hr2 && q.hr1) q.hr2 = q.hr1;
   if (!q.f2 && q.f1) q.f2 = [q.f1[0] - 4, q.f1[1]];
-  if (q.ua2 == null && q.ua1 != null) { q.ua2 = q.ua1 - 3; q.fa2 = q.fa1 - 3; }
+  // ik2: zweiter Arm bleibt beim Handziel (z. B. Stütze auf der Bank)
+  if (q.ua2 == null && q.ua1 != null && !q.ik2) { q.ua2 = q.ua1 - 3; q.fa2 = q.fa1 - 3; }
   return q;
 }
 function mixPose(a, b, k) {
@@ -299,15 +300,20 @@ function drawScene(ctx, spec, s, view, col) {
     muscle(l.knee, l.ankle, 0.3, -3, 10, 6.2, shade(SKIN, f), 'calves'),  // Wade
     ['cap', l.ankle, l.toe, 9, 6.5, shade(SHOE, f)],
   ];
-  const arm = (a, f) => [
+  // Oberarm und Unterarm sind getrennte Ebenen, damit bei gebeugtem Ellbogen eine Kontur dazwischen bleibt
+  const upperArm = (a, f) => [
     ['circ', s.shoulder, 9, shade(SKIN, f), 'delts'],                    // Schulter
-    ['cap', s.shoulder, a.elbow, 12, 9, shade(SKIN, f)],
-    muscle(s.shoulder, a.elbow, 0.55, 2.8, 10, 6, shade(SKIN, f), 'biceps'),   // Bizeps
-    muscle(s.shoulder, a.elbow, 0.45, -2.8, 10, 5.2, shade(SKIN, f), 'triceps'), // Trizeps
-    ['cap', a.elbow, a.hand, 10, 6.5, shade(SKIN, f)],
-    muscle(a.elbow, a.hand, 0.3, 0.8, 8, 5.6, shade(SKIN, f), 'forearms'),        // Unterarm
-    ['circ', a.hand, 4.8, shade(SKIN, f)],
+    ['cap', s.shoulder, a.elbow, 12, 8.5, shade(SKIN, f)],
+    muscle(s.shoulder, a.elbow, 0.5, 2.4, 9, 5, shade(SKIN, f), 'biceps'),     // Bizeps
+    muscle(s.shoulder, a.elbow, 0.42, -2.4, 9, 4.6, shade(SKIN, f), 'triceps'), // Trizeps
   ];
+  const foreArm = (a, f) => [
+    ['circ', a.elbow, 4.6, shade(SKIN, f)],
+    ['cap', a.elbow, a.hand, 9, 6, shade(SKIN, f)],
+    muscle(a.elbow, a.hand, 0.32, 0.6, 7.5, 4.6, shade(SKIN, f), 'forearms'),     // Unterarm
+    ['circ', a.hand, 4.6, shade(SKIN, f)],
+  ];
+  const arm = (a, f) => { drawLayer(upperArm(a, f)); drawLayer(foreArm(a, f)); };
   const tdir = Math.atan2(s.shoulder[1] - s.hip[1], s.shoulder[0] - s.hip[0]);
   const front = [Math.cos(tdir + Math.PI / 2), Math.sin(tdir + Math.PI / 2)];
   const at = (k, off) => { const c = along(s.hip, s.shoulder, k); return [c[0] + front[0] * off, c[1] + front[1] * off]; };
@@ -374,11 +380,11 @@ function drawScene(ctx, spec, s, view, col) {
   };
   // hinten: zweites Bein und Arm etwas dunkler, dann Rumpf, dann vorderes Bein und Arm
   drawLayer(leg(s.l2, 0.72));
-  drawLayer(arm(s.a2, 0.72));
+  arm(s.a2, 0.72);
   if (spec.db === 'both') dumbbell(s.a2.hand);
   drawLayer(torso);
   drawLayer(leg(s.l1, 1));
-  drawLayer(arm(s.a1, 1));
+  arm(s.a1, 1);
   if (spec.db === 'both' || spec.db === 'one') dumbbell(s.a1.hand);
   else if (spec.db === 'center') dumbbell([(s.a1.hand[0] + s.a2.hand[0]) / 2, (s.a1.hand[1] + s.a2.hand[1]) / 2]);
   ctx.restore();
