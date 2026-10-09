@@ -356,6 +356,7 @@ function exDetail(id) {
   const equipNames = { kh: 'Kurzhanteln', bank: 'Hantelbank', stange: 'Klimmzugstange', dip: 'Dipstange' };
   return `<h2>${esc(ex.name)}</h2>
     <div class="muted">${esc(ex.muscles || ex.group)}${ex.equip?.length ? ` · ${ex.equip.map((q) => equipNames[q] || q).join(', ')}` : ' · ohne Geräte'}</div>
+    ${typeof ANIM !== 'undefined' && ANIM[ex.id] ? `<canvas class="anim" data-ex="${ex.id}" role="img" aria-label="Animation: ${esc(ex.name)}"></canvas>` : ''}
     ${ex.steps?.length ? `<h3>So geht's</h3><ol>${ex.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
     ${ex.mistakes?.length ? `<h3>Typische Fehler</h3><ul class="warn">${ex.mistakes.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
     <a class="btn" href="${esc(videoUrl(ex))}" target="_blank" rel="noopener">▶ Video ansehen</a>
@@ -547,7 +548,7 @@ function timerSheet() {
 }
 
 // ---------- Modal, Toast ----------
-function modal(html) { $('#modal').innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><button type="button" class="close" data-a="closeModal" aria-label="Schließen">✕</button>${html}</div>`; $('#modal').hidden = false; document.body.classList.add('noscroll'); }
+function modal(html) { $('#modal').innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><button type="button" class="close" data-a="closeModal" aria-label="Schließen">✕</button>${html}</div>`; $('#modal').hidden = false; document.body.classList.add('noscroll'); if (typeof startExerciseAnim === 'function') startExerciseAnim(); }
 function closeModal() { const r = ui.ask; ui.ask = null; r?.(false); $('#modal').hidden = true; $('#modal').innerHTML = ''; document.body.classList.remove('noscroll'); ui.picker = null; }
 // Eigene Rückfrage statt confirm(), funktioniert überall gleich
 function ask(msg, ok = 'Ja') {

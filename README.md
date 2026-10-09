@@ -5,7 +5,7 @@ Persönliche Trainings-App fürs Handy (iPhone und Android) (Web-App/PWA). Alle 
 - Plan erstellen lassen (Fragebogen) oder eigenen Plan bauen
 - Training protokollieren: Sätze, Wiederholungen, Gewicht; Läufe mit Strecke und Zeit
 - Timer und Stoppuhr, bei Zeitübungen direkt pro Satz startbar
-- Übungsbibliothek mit Erklärungen, typischen Fehlern und Videolinks
+- Übungsbibliothek mit animierten Skizzen, Erklärungen, typischen Fehlern und Videolinks
 - Kalender-Übersicht, Erinnerungen als Kalendertermine, Backup
 
 Installieren: iPhone: Safari → Teilen → „Zum Home-Bildschirm“. Android: Chrome → Menü → „App installieren“ (Samsung Internet löst eine Play-Protect-Warnung aus).
