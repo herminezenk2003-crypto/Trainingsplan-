@@ -3,6 +3,7 @@
 // Jede Übung hat zwei Posen (a = Start, b = Endposition), dazwischen wird weich überblendet.
 // Pose: hip [x,y] Hüfte, t Rumpfwinkel in Grad (0 = rechts, 90 = unten, -90 = oben),
 // h1/h2 Handziel (Welt), hr1/hr2 Handziel relativ zur Schulter [entlang Rumpf, nach vorn],
+// ua1/fa1 (ua2/fa2) feste Winkel für Ober- und Unterarm statt Handziel,
 // f1/f2 Fußgelenk (Welt), fd1/fd2 Fußrichtung, es/ks Beugerichtung Ellbogen/Knie.
 // Ellbogen und Knie werden per Zwei-Gelenk-IK berechnet, dadurch bleiben Hände und Füße fest.
 // Boden liegt bei y = 180, ein stehender Körper hat die Hüfte bei etwa y = 90.
@@ -108,8 +109,9 @@ const ANIM = {
     b: { h1: [128, 128] } },
 
   // ---------- Arme ----------
-  'bizepscurls': { db: 'both', a: { ...STAND }, b: { h1: [172, 46], h2: [168, 46] } },
-  'hammercurls': { db: 'both', a: { ...STAND }, b: { h1: [172, 46], h2: [168, 46] } },
+  // Curls: Oberarm bleibt am Körper, nur der Unterarm klappt hoch (Gelenkwinkel statt Handziel)
+  'bizepscurls': { db: 'both', a: { ...STAND, ua1: 92, fa1: 88 }, b: { ua1: 98, fa1: -62 } },
+  'hammercurls': { db: 'both', a: { ...STAND, ua1: 92, fa1: 88 }, b: { ua1: 98, fa1: -62 } },
   'trizeps-ueberkopf': { db: 'center',
     a: { ...STAND, h1: [148, 30], h2: [146, 30] },
     b: { h1: [160, -20], h2: [158, -20] } },
@@ -192,13 +194,14 @@ function fullPose(p) {
   if (!q.h2 && q.h1) q.h2 = [q.h1[0] - 4, q.h1[1]];
   if (!q.hr2 && q.hr1) q.hr2 = q.hr1;
   if (!q.f2 && q.f1) q.f2 = [q.f1[0] - 4, q.f1[1]];
+  if (q.ua2 == null && q.ua1 != null) { q.ua2 = q.ua1 - 3; q.fa2 = q.fa1 - 3; }
   return q;
 }
 function mixPose(a, b, k) {
   const out = {};
   for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
     const va = a[key] ?? b[key], vb = b[key] ?? a[key];
-    if (key === 't' || key.startsWith('fd')) out[key] = lerpAng(va ?? 0, vb ?? 0, k);
+    if (key === 't' || key.startsWith('fd') || key.startsWith('ua') || key.startsWith('fa')) out[key] = lerpAng(va ?? 0, vb ?? 0, k);
     else if (Array.isArray(va)) out[key] = [lerp(va[0], vb[0], k), lerp(va[1], vb[1], k)];
     else out[key] = k < 0.5 ? va : vb;
   }
@@ -211,9 +214,12 @@ function solve(p) {
   const front = p.t + 90;
   const hand = (h, hr) => h || (hr ? add(add(shoulder, dirv(p.t, hr[0])), dirv(front, hr[1])) : add(shoulder, [4, 56]));
   const es = p.es ?? -1, ks = p.ks ?? 1;
-  const arm = (h, hr) => { const [elbow, end] = ik(shoulder, hand(h, hr), BODY.upper, BODY.fore, es); return { elbow, hand: end }; };
+  const arm = (h, hr, ua, fa) => {
+    if (ua != null) { const elbow = add(shoulder, dirv(ua, BODY.upper)); return { elbow, hand: add(elbow, dirv(fa, BODY.fore)) }; }
+    const [elbow, end] = ik(shoulder, hand(h, hr), BODY.upper, BODY.fore, es); return { elbow, hand: end };
+  };
   const leg = (f, fd) => { const [knee, ankle] = ik(hip, f || add(hip, [0, 86]), BODY.thigh, BODY.shin, ks); return { knee, ankle, toe: add(ankle, dirv(fd ?? 0, BODY.foot)) }; };
-  return { hip, shoulder, head, a1: arm(p.h1, p.hr1), a2: arm(p.h2, p.hr2), l1: leg(p.f1, p.fd1), l2: leg(p.f2, p.fd2) };
+  return { hip, shoulder, head, a1: arm(p.h1, p.hr1, p.ua1, p.fa1), a2: arm(p.h2, p.hr2, p.ua2, p.fa2), l1: leg(p.f1, p.fd1), l2: leg(p.f2, p.fd2) };
 }
 
 // ---------- Zeichnen ----------
