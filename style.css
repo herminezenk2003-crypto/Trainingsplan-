@@ -147,3 +147,26 @@ b.r, .dot.r { background: var(--run); }
 #toast[hidden] { display: none; }
 .ask { font-size: 17px; margin: 8px 40px 12px 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Timer & Stoppuhr */
+header.top .icon { margin-left: 8px; }
+.play { width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--accent); font-size: 16px; cursor: pointer; flex: none; }
+.play.on { background: var(--accent-soft); border-color: var(--accent); }
+.set:has(.play) label:first-of-type { flex: .8; }
+.custom-timer { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; }
+.custom-timer label { flex: 1; display: flex; align-items: center; gap: 4px; } .custom-timer span { font-size: 13px; color: var(--muted); }
+.custom-timer input { text-align: center; }
+#timerbar { position: fixed; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom) + 72px); max-width: 624px; margin: 0 auto; z-index: 15;
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 16px; overflow: hidden;
+  background: var(--text); color: var(--bg); box-shadow: 0 4px 18px rgba(0,0,0,.18); }
+#nav[hidden] ~ #timerbar { bottom: calc(env(safe-area-inset-bottom) + 12px); }
+#timerbar[hidden] { display: none; }
+.tb-progress { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); opacity: .35; transition: width .2s linear; pointer-events: none; }
+.tb-info { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tb-label { font-size: 12px; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-time { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tb-btns { position: relative; display: flex; align-items: center; gap: 8px; }
+.tb-btns .icon { background: transparent; color: var(--bg); border-color: color-mix(in srgb, var(--bg) 35%, transparent); width: 40px; height: 40px; font-size: 14px; }
+body.timer-on #app { padding-bottom: calc(env(safe-area-inset-bottom) + 180px); }
+header.top .icon { font-size: 19px; }
+body.timer-on #toast { bottom: calc(env(safe-area-inset-bottom) + 160px); }

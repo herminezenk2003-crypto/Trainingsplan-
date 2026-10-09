@@ -151,7 +151,14 @@ function render() {
   $('#nav').hidden = v?.name === 'workout';
 }
 
-const header = (title, back) => `<header class="top">${back ? `<button type="button" class="back" data-a="${back}" aria-label="Zurück">‹</button>` : ''}<h1>${esc(title)}</h1></header>`;
+const timerBtn = '<button type="button" class="icon" data-a="openTimer" aria-label="Timer und Stoppuhr">⏱</button>';
+const header = (title, back, right = '') => `<header class="top">${back ? `<button type="button" class="back" data-a="${back}" aria-label="Zurück">‹</button>` : ''}<h1>${esc(title)}</h1>${right}</header>`;
+
+const INSTALL_HELP = `<p class="small"><b>iPhone:</b> In Safari auf <b>Teilen</b> (Quadrat mit Pfeil) und dann <b>Zum Home-Bildschirm</b> tippen.</p>
+  <p class="small"><b>Android / Samsung:</b> In Chrome oder Samsung Internet das Menü (⋮ bzw. ≡) öffnen und <b>App installieren</b> oder <b>Zum Startbildschirm hinzufügen</b> wählen.</p>
+  <p class="muted small">Danach startet die App wie eine normale App und funktioniert auch offline. Jedes Handy hat seine eigenen Daten.</p>`;
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (ui.tab === 'mehr' && !ui.view) render(); });
 
 // ---------- Ansicht: Heute ----------
 function weekCard() {
@@ -171,7 +178,7 @@ function weekCard() {
 }
 function viewStart() {
   const plan = activePlan();
-  let html = header('Heute');
+  let html = header('Heute', null, timerBtn);
   if (db.workout) {
     html += `<section class="card hl"><h2>Training läuft</h2><p>${esc(db.workout.name)}, gestartet um ${new Date(db.workout.started).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</p><button type="button" class="btn primary" data-a="openWorkout">Fortsetzen</button></section>`;
   }
@@ -179,7 +186,7 @@ function viewStart() {
     return html + `<section class="card welcome"><h2>Willkommen!</h2><p>Leg los, indem du dir einen Plan erstellen lässt oder deinen eigenen baust.</p>
       <button type="button" class="btn primary" data-a="openGenerator">Plan erstellen lassen</button>
       <button type="button" class="btn" data-a="newPlan">Eigenen Plan bauen</button></section>
-      <section class="card"><h2>Tipp</h2><p>Installiere die App über <b>Teilen → Zum Home-Bildschirm</b> in Safari. Dann startet sie wie eine normale App und funktioniert offline.</p></section>`;
+      <section class="card"><h2>Tipp</h2>${INSTALL_HELP}</section>`;
   }
   html += weekCard();
   if (!plan) {
@@ -225,7 +232,7 @@ function makeWorkoutItem(it) {
 function viewWorkout() {
   const w = db.workout;
   if (!w) { ui.view = null; return viewStart(); }
-  let html = `<header class="top"><button type="button" class="back" data-a="leaveWorkout" aria-label="Zurück">‹</button><h1>${esc(w.name)}</h1></header>`;
+  let html = header(w.name, 'leaveWorkout', timerBtn);
   if (w.type === 'lauf') {
     html += `<section class="card">${w.runTarget ? `<p class="run-target">🏃 ${esc(w.runTarget)}</p>` : ''}
       <label class="field"><span>Strecke (km)</span><input inputmode="decimal" data-c="run" data-k="km" value="${esc(w.run.km)}" placeholder="z. B. 5,2"></label>
@@ -243,6 +250,7 @@ function viewWorkout() {
         <div class="sets">${it.sets.map((s, j) => `<div class="set ${s.done ? 'done' : ''}"><span class="n">${j + 1}</span>
           <label><input inputmode="decimal" data-c="setField" data-i="${i}" data-j="${j}" data-k="weight" value="${esc(s.weight)}" placeholder="–"><span>kg</span></label>
           <label><input inputmode="numeric" data-c="setField" data-i="${i}" data-j="${j}" data-k="reps" value="${esc(s.reps)}" placeholder="${esc(String(it.target).split(/[–\- ]/)[0])}"><span>${unit}</span></label>
+          ${unit === 'Sek' ? `<button type="button" class="play ${timer.target?.i === i && timer.target?.j === j ? 'on' : ''}" data-a="setTimer" data-i="${i}" data-j="${j}" aria-label="Timer für diesen Satz starten">▶</button>` : ''}
           <button type="button" class="check" data-a="toggleSet" data-i="${i}" data-j="${j}" aria-label="Satz erledigt">✓</button></div>`).join('')}</div>
         <div class="setbtns"><button type="button" class="link" data-a="addSet" data-i="${i}">+ Satz</button>${it.sets.length > 1 ? `<button type="button" class="link" data-a="removeSet" data-i="${i}">− Satz</button>` : ''}</div>
       </section>`;
@@ -261,6 +269,7 @@ async function finishWorkout() {
   if (w.type === 'lauf' && !num(w.run.km) && !num(w.run.min) && !(await ask('Keine Strecke oder Zeit eingetragen. Trotzdem speichern?'))) return;
   db.logs.push({ id: uid(), date: w.started, end: new Date().toISOString(), planId: w.planId, sessionId: w.sessionId, name: w.name, type: w.type,
     items, run: w.type === 'lauf' ? { km: num(w.run.km), min: num(w.run.min) } : null, note: w.note });
+  if (timer.target) clearTimer();
   db.workout = null; save();
   toast(w.type === 'lauf' ? 'Lauf gespeichert 🏃' : 'Training gespeichert 💪');
   go('start');
@@ -308,7 +317,7 @@ function viewGenerator() {
   const check = (name, val, label) => `<label class="chip"><input type="checkbox" name="${name}" value="${val}" ${p[name].includes(val) ? 'checked' : ''}><span>${label}</span></label>`;
   return header('Plan erstellen lassen', 'closeView') + `<form id="genForm" class="card form">
     <fieldset><legend>Was ist dein Ziel?</legend><div class="chips">${radio('goal', 'fit', 'Fit & gesund')}${radio('goal', 'muskel', 'Muskelaufbau')}${radio('goal', 'kraft', 'Kraft')}${radio('goal', 'abnehmen', 'Abnehmen')}${radio('goal', 'ausdauer', 'Ausdauer')}</div></fieldset>
-    <fieldset><legend>Wie erfahren bist du?</legend><div class="chips">${radio('level', 'anfaenger', 'Anfängerin')}${radio('level', 'fortgeschritten', 'Fortgeschritten')}${radio('level', 'erfahren', 'Sehr erfahren')}</div></fieldset>
+    <fieldset><legend>Wie erfahren bist du?</legend><div class="chips">${radio('level', 'anfaenger', 'Einsteiger')}${radio('level', 'fortgeschritten', 'Fortgeschritten')}${radio('level', 'erfahren', 'Sehr erfahren')}</div></fieldset>
     <fieldset><legend>Krafttraining pro Woche</legend><div class="chips">${[1, 2, 3, 4, 5].map((n) => radio('days', n, `${n}×`)).join('')}</div></fieldset>
     <fieldset><legend>Dauer pro Einheit</legend><div class="chips">${[30, 45, 60, 75].map((n) => radio('duration', n, `${n} Min`)).join('')}</div></fieldset>
     <fieldset><legend>Joggen pro Woche</legend><div class="chips">${[0, 1, 2, 3].map((n) => radio('runs', n, `${n}×`)).join('')}</div></fieldset>
@@ -405,16 +414,16 @@ function logDetail(id) {
 function viewMore() {
   const r = db.reminder;
   return header('Mehr') + `<section class="card"><h2>Erinnerungen</h2>
-    <p class="muted small">Wähle deine Trainingstage. Die App erstellt daraus wiederkehrende Termine mit Erinnerung für deinen iPhone-Kalender.</p>
+    <p class="muted small">Wähle deine Trainingstage. Die App erstellt daraus wiederkehrende Termine mit Erinnerung für deinen Handy-Kalender.</p>
     <div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" data-c="remDay" value="${d}" ${r.days.includes(d) ? 'checked' : ''}><span>${WD[d]}</span></label>`).join('')}</div>
     <div class="grid2"><label class="field"><span>Uhrzeit</span><input type="time" data-c="remField" data-k="time" value="${esc(r.time)}"></label>
     <label class="field"><span>Erinnern</span><select data-c="remField" data-k="alarm">${[[0, 'zur Startzeit'], [15, '15 Min vorher'], [30, '30 Min vorher'], [60, '1 Std vorher']].map(([v, l]) => `<option value="${v}" ${+r.alarm === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
     <button type="button" class="btn primary" data-a="exportIcs">Zum Kalender hinzufügen</button>
-    <p class="muted small">Safari fragt dann, ob du die Termine hinzufügen möchtest. Falls eine Datei geladen wird: in der Dateien-App antippen. Ändern oder löschen kannst du die Termine später direkt im Kalender.</p></section>
+    <p class="muted small">Je nach Handy fragt der Kalender direkt, ob du die Termine hinzufügen möchtest. Sonst wird eine Datei geladen: diese antippen und mit dem Kalender öffnen. Ändern oder löschen kannst du die Termine später direkt im Kalender.</p></section>
     <section class="card"><h2>Backup</h2><p class="muted small">Deine Daten liegen nur auf diesem Handy. Sichere sie ab und zu, z. B. in iCloud Drive.</p>
     <div class="btnrow"><button type="button" class="btn" data-a="exportJson">Daten sichern</button><label class="btn">Wiederherstellen<input type="file" accept=".json,application/json" data-c="importJson" hidden></label></div>
     ${db.lastBackup ? `<p class="muted small">Letzte Sicherung: ${fmtDate(db.lastBackup)}</p>` : ''}</section>
-    <section class="card"><h2>Installieren</h2><p class="small">Öffne die App in <b>Safari</b>, tippe auf <b>Teilen</b> (Quadrat mit Pfeil) und dann auf <b>Zum Home-Bildschirm</b>. Danach funktioniert sie auch offline.</p></section>
+    <section class="card"><h2>Installieren</h2>${installEvt ? '<button type="button" class="btn primary" data-a="install">App installieren</button>' : ''}${INSTALL_HELP}</section>
     <section class="card"><h2>Daten</h2><p class="muted small">${db.plans.length} Pläne · ${db.logs.length} Trainings · ${db.customExercises.length} eigene Übungen</p>
     <button type="button" class="btn danger" data-a="wipe">Alle Daten löschen</button></section>`;
 }
@@ -442,6 +451,97 @@ function download(name, text, type) {
   const a = document.createElement('a');
   a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// ---------- Timer & Stoppuhr ----------
+// Zeit wird aus Zeitstempeln berechnet, damit sie auch stimmt, wenn das Handy kurz gesperrt war.
+const timer = { mode: null, dur: 0, start: 0, acc: 0, running: false, label: '', target: null, beeped: 0 };
+let audioCtx = null, tickHandle = null, wakeLock = null;
+function unlockAudio() { try { audioCtx ||= new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {} }
+function beep(freq = 880, ms = 150) {
+  try {
+    unlockAudio();
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = freq; o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + ms / 1000);
+    o.start(t); o.stop(t + ms / 1000);
+  } catch (e) {}
+}
+const timerElapsed = () => timer.acc + (timer.running ? Date.now() - timer.start : 0);
+function fmtClock(ms, up) {
+  const total = up ? Math.floor(ms / 1000) : Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(total / 60)}:${pad(total % 60)}`;
+}
+async function keepAwake(on) {
+  try {
+    if (on && !wakeLock && navigator.wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+function startTimer(mode, seconds = 0, label = '', target = null) {
+  unlockAudio();
+  Object.assign(timer, { mode, dur: seconds * 1000, start: Date.now(), acc: 0, running: true, label, target, beeped: 0 });
+  clearInterval(tickHandle); tickHandle = setInterval(tick, 200);
+  keepAwake(true); tick(); render();
+}
+function clearTimer() {
+  clearInterval(tickHandle); tickHandle = null;
+  Object.assign(timer, { mode: null, running: false, target: null, label: '' });
+  keepAwake(false); renderTimerBar(); render();
+}
+function tick() {
+  if (timer.mode === 'down') {
+    const rem = timer.dur - timerElapsed();
+    const sec = Math.ceil(rem / 1000);
+    if (timer.running && sec <= 3 && sec > 0 && timer.beeped !== sec) { timer.beeped = sec; beep(660, 120); }
+    if (rem <= 0) return timerDone();
+  }
+  renderTimerBar();
+}
+function timerDone() {
+  beep(990, 700);
+  try { navigator.vibrate?.([300, 120, 300]); } catch (e) {}
+  recordTimer(Math.round(timer.dur / 1000));
+  toast('Zeit um! ✓');
+  clearTimer();
+}
+// Trägt die gemessene Zeit in den Satz bzw. als Laufzeit ein
+function recordTimer(seconds) {
+  const t = timer.target, w = db.workout;
+  if (!t || !w || seconds <= 0) return;
+  if (t.run) { w.run.min = fmtNum(Math.round(seconds / 6) / 10); }
+  else { const s = w.items[t.i]?.sets[t.j]; if (!s) return; s.reps = String(seconds); s.done = true; }
+  save();
+}
+function renderTimerBar() {
+  const bar = $('#timerbar');
+  document.body.classList.toggle('timer-on', !!timer.mode);
+  if (!timer.mode) { bar.hidden = true; bar.innerHTML = ''; return; }
+  const up = timer.mode === 'up';
+  const ms = up ? timerElapsed() : timer.dur - timerElapsed();
+  const pct = up ? 0 : Math.min(100, (timerElapsed() / timer.dur) * 100);
+  const html = `<div class="tb-progress" style="width:${pct}%"></div>
+    <div class="tb-info"><span class="tb-label">${esc(timer.label || (up ? 'Stoppuhr' : 'Timer'))}</span><span class="tb-time">${fmtClock(ms, up)}</span></div>
+    <div class="tb-btns"><button type="button" class="icon" data-a="timerToggle" aria-label="${timer.running ? 'Pause' : 'Weiter'}">${timer.running ? '❚❚' : '▶'}</button>
+    ${timer.target ? '<button type="button" class="btn small primary" data-a="timerStop">Fertig</button>' : ''}
+    <button type="button" class="icon" data-a="timerCancel" aria-label="Timer beenden">✕</button></div>`;
+  // Nur die Zeit aktualisieren, solange sich sonst nichts ändert (sonst flackern die Knöpfe)
+  const key = `${timer.mode}|${timer.running}|${!!timer.target}|${timer.label}`;
+  if (bar.dataset.key === key && !bar.hidden) {
+    bar.querySelector('.tb-time').textContent = fmtClock(ms, up);
+    bar.querySelector('.tb-progress').style.width = pct + '%';
+  } else { bar.innerHTML = html; bar.dataset.key = key; bar.hidden = false; }
+}
+function timerSheet() {
+  const w = db.workout;
+  const presets = [30, 45, 60, 90, 120, 180, 300];
+  return `<h2>Timer & Stoppuhr</h2>
+    <h3>Timer</h3><div class="chips">${presets.map((s) => `<button type="button" class="chip-btn" data-a="timerPreset" data-s="${s}">${fmtClock(s * 1000)}</button>`).join('')}</div>
+    <div class="custom-timer"><label><input type="number" id="tMin" min="0" max="99" inputmode="numeric" placeholder="0"><span>Min</span></label><label><input type="number" id="tSec" min="0" max="59" inputmode="numeric" placeholder="0"><span>Sek</span></label>
+    <button type="button" class="btn small primary" data-a="timerCustom">Start</button></div>
+    <h3>Stoppuhr</h3><p class="muted small">${w?.type === 'lauf' ? 'Mit „Fertig“ wird die gestoppte Zeit als Laufzeit eingetragen.' : 'Zählt hoch, z. B. für „so lange wie möglich halten“.'}</p>
+    <button type="button" class="btn" data-a="stopwatch">Stoppuhr starten</button>
+    <p class="muted small">Bei Zeitübungen wie Plank startest du den Timer auch direkt mit ▶ neben dem Satz.</p>`;
 }
 
 // ---------- Modal, Toast ----------
@@ -523,6 +623,29 @@ const A = {
     save(); toast('Übung gespeichert'); go('uebungen');
   },
   exGroup: (d) => { ui.exGroup = d.g; render(); },
+  openTimer: () => modal(timerSheet()),
+  timerPreset: (d) => { closeModal(); startTimer('down', +d.s); },
+  timerCustom: () => {
+    const sec = (parseInt($('#tMin').value) || 0) * 60 + (parseInt($('#tSec').value) || 0);
+    if (sec <= 0) return toast('Bitte eine Zeit eingeben');
+    closeModal(); startTimer('down', sec);
+  },
+  stopwatch: () => { closeModal(); startTimer('up', 0, 'Stoppuhr', db.workout?.type === 'lauf' ? { run: true } : null); },
+  setTimer: (d) => {
+    const i = +d.i, j = +d.j, it = db.workout.items[i], s = it.sets[j];
+    if (timer.mode && timer.target?.i === i && timer.target?.j === j) return A.timerToggle();
+    const sec = parseInt(s.reps) || parseInt(String(it.target).match(/\d+/)?.[0]);
+    const label = `${exById(it.exId).name} · Satz ${j + 1}`;
+    if (sec > 0) startTimer('down', sec, label, { i, j }); else startTimer('up', 0, label, { i, j });
+  },
+  timerToggle: () => {
+    if (!timer.mode) return;
+    if (timer.running) { timer.acc = timerElapsed(); timer.running = false; } else { timer.start = Date.now(); timer.running = true; unlockAudio(); }
+    renderTimerBar();
+  },
+  timerStop: () => { recordTimer(Math.round(timerElapsed() / 1000)); toast('Zeit eingetragen ✓'); clearTimer(); },
+  timerCancel: () => clearTimer(),
+  install: () => { installEvt?.prompt(); installEvt = null; render(); },
   start: (d) => startWorkout(d.plan, d.session),
   openWorkout: () => go('start', { name: 'workout' }),
   leaveWorkout: () => go('start'),
@@ -551,7 +674,7 @@ const A = {
   moveWorkoutEx: (d) => { const it = db.workout.items, i = +d.i, j = i + +d.d; if (j >= 0 && j < it.length) [it[i], it[j]] = [it[j], it[i]]; save(); closeModal(); render(); },
   removeWorkoutEx: (d) => { db.workout.items.splice(+d.i, 1); save(); closeModal(); render(); },
   finishWorkout,
-  cancelWorkout: async () => { if (!(await ask('Training verwerfen? Eingetragene Sätze gehen verloren.'))) return; db.workout = null; save(); go('start'); },
+  cancelWorkout: async () => { if (!(await ask('Training verwerfen? Eingetragene Sätze gehen verloren.'))) return; if (timer.target) clearTimer(); db.workout = null; save(); go('start'); },
   calMove: (d) => { ui.cal = new Date(ui.cal.getFullYear(), ui.cal.getMonth() + +d.d, 1); ui.calDay = null; render(); },
   calDay: (d) => { ui.calDay = ui.calDay === d.k ? null : d.k; render(); },
   showLog: (d) => modal(logDetail(d.id)),
@@ -609,6 +732,8 @@ const onInput = (e) => { const t = e.target.closest('[data-c]'); if (t && C[t.da
 document.addEventListener('input', (e) => { if (e.target.type !== 'checkbox' && e.target.type !== 'file' && e.target.tagName !== 'SELECT') onInput(e); });
 document.addEventListener('change', (e) => { if (e.target.type === 'checkbox' || e.target.type === 'file' || e.target.tagName === 'SELECT') onInput(e); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
+
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && timer.mode) { if (timer.running) keepAwake(true); tick(); } });
 
 // ---------- Start ----------
 if (db.workout) ui.view = { name: 'workout' };
