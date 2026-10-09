@@ -364,3 +364,63 @@ svg.chart text { font-size: 10px; fill: var(--muted); }
 .confetti i { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px; animation: fall 2.2s ease-in forwards; opacity: .9; }
 @keyframes fall { to { transform: translateY(520px) rotate(540deg); opacity: 0; } }
 body.noscroll #toast { bottom: auto; top: calc(env(safe-area-inset-top) + 12px); }
+
+/* ===== Design v3: eigene Schrift, gefüllte Felder, schwebende Navigation ===== */
+:root { --font: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; --bg: #f3f5f4; --field: #eef1ef;
+  --shadow: 0 1px 2px rgba(16,32,26,.04), 0 10px 28px -10px rgba(16,32,26,.16); --danger-soft: #fbe9e7; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --field: #222927; --danger-soft: #3a2220; --shadow: 0 10px 28px -12px rgba(0,0,0,.6); } }
+:root[data-theme="dark"] { --field: #222927; --danger-soft: #3a2220; --shadow: 0 10px 28px -12px rgba(0,0,0,.6); }
+
+body, input, select, textarea, button { font-family: var(--font); }
+body { background: radial-gradient(520px 320px at 100% -60px, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), radial-gradient(420px 260px at -10% 0, color-mix(in srgb, var(--run) 9%, transparent), transparent 70%), var(--bg); background-repeat: no-repeat; }
+h1 { font-size: 34px; letter-spacing: -.035em; }
+h2 { letter-spacing: -.02em; }
+header.top { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; transition: background .2s; }
+body.scrolled header.top { background: var(--glass); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px); }
+
+.card { border: 0; border-radius: 22px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border: 1px solid var(--card-line); } }
+:root[data-theme="dark"] .card { border: 1px solid var(--card-line); }
+
+/* Knöpfe: gefüllt statt umrandet */
+.btn { border: 0; background: var(--accent-soft); color: var(--accent); border-radius: 16px; min-height: 50px; font-weight: 700; }
+.btn.primary { border-radius: 16px; }
+.btn.danger { background: var(--danger-soft); color: var(--danger); }
+.btn.small { min-height: 34px; border-radius: 999px; padding: 6px 14px; }
+.btn:disabled { opacity: .4; }
+label.btn { cursor: pointer; }
+.icon { border: 0; background: var(--card); }
+.chip span, .chip-btn { border: 0; background: var(--field); font-weight: 600; }
+.chip input:checked + span, .chip-btn.on { background: var(--accent); color: var(--on-accent); }
+
+/* Eingabefelder: gefüllt */
+input, select, textarea { background: var(--field); border: 1px solid transparent; }
+input:focus, select:focus, textarea:focus { background: var(--card); }
+.search input { background-color: var(--card); box-shadow: var(--shadow); }
+.set.done input { background: var(--accent-soft); }
+.check, .play { border: 0; background: var(--field); }
+
+/* Listen und Pläne */
+.list .row { border-bottom-color: var(--field); }
+.ex-row .grow b { display: block; }
+details.card summary, .card details summary { display: flex; align-items: center; gap: 12px; }
+.card details summary .sum-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.card details { border-top-color: var(--field); padding: 10px 0; }
+.card details summary::after { content: '›'; color: var(--muted); font-size: 20px; transition: transform .2s; }
+.card details[open] summary::after { transform: rotate(90deg); }
+.card.active-plan { box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+.card-head .btn.small { width: auto; margin: 0; }
+.pill { border-radius: 18px; }
+
+/* Schwebende Navigation */
+#nav { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 10px); max-width: 520px; margin: 0 auto; border: 0; border-radius: 26px; padding: 8px 6px;
+  box-shadow: 0 10px 30px -6px rgba(16,32,26,.22), 0 0 0 1px var(--card-line); }
+#app { padding-bottom: calc(env(safe-area-inset-bottom) + 112px); }
+#timerbar { bottom: calc(env(safe-area-inset-bottom) + 92px); }
+#toast { bottom: calc(env(safe-area-inset-bottom) + 100px); }
+body.timer-on #app { padding-bottom: calc(env(safe-area-inset-bottom) + 200px); }
+body.timer-on #toast { bottom: calc(env(safe-area-inset-bottom) + 180px); }
+
+
+.sheet { border-radius: 28px 28px 0 0; }
+.hero { border-radius: 26px; }

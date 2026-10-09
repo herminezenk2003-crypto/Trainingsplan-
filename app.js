@@ -295,9 +295,8 @@ function viewPlans() {
   let html = header('Pläne');
   html += `<div class="btnrow"><button type="button" class="btn primary" data-a="openGenerator">Plan erstellen lassen</button><button type="button" class="btn" data-a="newPlan">Eigener Plan</button></div>`;
   if (!db.plans.length) return html + `<p class="empty">Noch keine Pläne.</p>`;
-  html += db.plans.map((p) => `<section class="card"><div class="row"><div><h2>${esc(p.name)}</h2><div class="muted small">${p.sessions.length} Einheiten${p.id === db.activePlanId ? ' · <b class="accent">aktiv</b>' : ''}</div></div>
-    <button type="button" class="btn small" data-a="editPlan" data-id="${p.id}">Bearbeiten</button></div>
-    ${p.sessions.map((s) => `<details><summary>${esc(s.name)} <span class="muted small">${s.type === 'lauf' ? 'Laufen' : `${s.items.length} Übungen`} · ${s.perWeek || 1}× pro Woche</span></summary>${sessionPreview(s)}</details>`).join('')}
+  html += db.plans.map((p) => `<section class="card ${p.id === db.activePlanId ? 'active-plan' : ''}">${cardHead('plan', `${esc(p.name)}<small>${p.sessions.length} Einheiten${p.id === db.activePlanId ? ' · <b class="accent">aktiv</b>' : ''}</small>`, `<button type="button" class="btn small" data-a="editPlan" data-id="${p.id}">Bearbeiten</button>`)}
+    ${p.sessions.map((s) => `<details><summary>${ico(s.type === 'lauf' ? 'run' : 'dumbbell', `sm ${s.type === 'lauf' ? 'orange' : ''}`)}<span class="sum-t"><b>${esc(s.name)}</b><span class="muted small">${s.type === 'lauf' ? 'Laufen' : `${s.items.length} Übungen`} · ${s.perWeek || 1}× pro Woche</span></span></summary>${sessionPreview(s)}</details>`).join('')}
     ${p.id !== db.activePlanId ? `<button type="button" class="btn small" data-a="activatePlan" data-id="${p.id}">Als aktiven Plan nutzen</button>` : ''}</section>`).join('');
   return html;
 }
@@ -439,7 +438,7 @@ function viewHistory() {
     <div class="cal">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => `<div class="dow">${d}</div>`).join('')}${cells}</div>
     <div class="legend"><span><b class="k"></b>Kraft</span><span><b class="r"></b>Laufen</span></div>
     <div class="stats"><div><b>${monthLogs.filter((l) => l.type === 'kraft').length}</b><span>Krafttrainings</span></div><div><b>${monthLogs.filter((l) => l.type === 'lauf').length}</b><span>Läufe</span></div><div><b>${fmtNum(km) || 0}</b><span>km gelaufen</span></div></div></section>
-    <section class="card">${cardHead('calendar', ui.calDay ? fmtDate(ui.calDay) : 'Letzte Trainings')}${shown.length ? `<div class="list">${shown.map((l) => `<button type="button" class="row ex-row" data-a="showLog" data-id="${l.id}"><div><b>${esc(l.name)}</b><div class="muted small">${fmtDate(l.date)} · ${l.type === 'lauf' ? `${fmtNum(l.run?.km) || '–'} km · ${fmtNum(l.run?.min) || '–'} Min` : `${l.items.length} Übungen · ${l.items.reduce((a, i) => a + i.sets.length, 0)} Sätze`}</div></div><span class="dot ${l.type === 'lauf' ? 'r' : 'k'}"></span></button>`).join('')}</div>` : '<p class="empty">Keine Trainings.</p>'}</section>`
+    <section class="card">${cardHead('calendar', ui.calDay ? fmtDate(ui.calDay) : 'Letzte Trainings')}${shown.length ? `<div class="list">${shown.map((l) => `<button type="button" class="row ex-row" data-a="showLog" data-id="${l.id}">${ico(l.type === 'lauf' ? 'run' : 'dumbbell', `sm ${l.type === 'lauf' ? 'orange' : ''}`)}<div class="grow"><b>${esc(l.name)}</b><div class="muted small">${fmtDate(l.date)} · ${l.type === 'lauf' ? `${fmtNum(l.run?.km) || '–'} km · ${fmtNum(l.run?.min) || '–'} Min` : `${l.items.length} Übungen · ${l.items.reduce((a, i) => a + i.sets.length, 0)} Sätze`}</div></div><span class="chev">›</span></button>`).join('')}</div>` : '<p class="empty">Keine Trainings.</p>'}</section>`
     + recordsCard() + bodyCard() + badgesCard();
 }
 function logDetail(id) {
@@ -456,18 +455,18 @@ function logDetail(id) {
 // ---------- Ansicht: Mehr ----------
 function viewMore() {
   const r = db.reminder;
-  return header('Mehr') + `<section class="card"><h2>Erinnerungen</h2>
+  return header('Mehr') + `<section class="card">${cardHead('bell', 'Erinnerungen', '', 'orange')}
     <p class="muted small">Wähle deine Trainingstage. Die App erstellt daraus wiederkehrende Termine mit Erinnerung für deinen Handy-Kalender.</p>
     <div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<label class="chip"><input type="checkbox" data-c="remDay" value="${d}" ${r.days.includes(d) ? 'checked' : ''}><span>${WD[d]}</span></label>`).join('')}</div>
     <div class="grid2"><label class="field"><span>Uhrzeit</span><input type="time" data-c="remField" data-k="time" value="${esc(r.time)}"></label>
     <label class="field"><span>Erinnern</span><select data-c="remField" data-k="alarm">${[[0, 'zur Startzeit'], [15, '15 Min vorher'], [30, '30 Min vorher'], [60, '1 Std vorher']].map(([v, l]) => `<option value="${v}" ${+r.alarm === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
     <button type="button" class="btn primary" data-a="exportIcs">Zum Kalender hinzufügen</button>
     <p class="muted small">Je nach Handy fragt der Kalender direkt, ob du die Termine hinzufügen möchtest. Sonst wird eine Datei geladen: diese antippen und mit dem Kalender öffnen. Ändern oder löschen kannst du die Termine später direkt im Kalender.</p></section>
-    <section class="card"><h2>Backup</h2><p class="muted small">Deine Daten liegen nur auf diesem Handy. Sichere sie ab und zu, z. B. in iCloud Drive.</p>
+    <section class="card">${cardHead('cloud', 'Backup', '', 'blue')}<p class="muted small">Deine Daten liegen nur auf diesem Handy. Sichere sie ab und zu, z. B. in iCloud Drive.</p>
     <div class="btnrow"><button type="button" class="btn" data-a="exportJson">Daten sichern</button><label class="btn">Wiederherstellen<input type="file" accept=".json,application/json" data-c="importJson" hidden></label></div>
     ${db.lastBackup ? `<p class="muted small">Letzte Sicherung: ${fmtDate(db.lastBackup)}</p>` : ''}</section>
-    <section class="card"><h2>Installieren</h2>${installEvt ? '<button type="button" class="btn primary" data-a="install">App installieren</button>' : ''}${INSTALL_HELP}</section>
-    <section class="card"><h2>Daten</h2><p class="muted small">${db.plans.length} Pläne · ${db.logs.length} Trainings · ${db.customExercises.length} eigene Übungen</p>
+    <section class="card">${cardHead('phone', 'Installieren')}${installEvt ? '<button type="button" class="btn primary" data-a="install">App installieren</button>' : ''}${INSTALL_HELP}</section>
+    <section class="card">${cardHead('data', 'Daten', '', 'gold')}<p class="muted small">${db.plans.length} Pläne · ${db.logs.length} Trainings · ${db.customExercises.length} eigene Übungen</p>
     <button type="button" class="btn danger" data-a="wipe">Alle Daten löschen</button></section>`;
 }
 function buildIcs() {
@@ -795,5 +794,6 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 if (db.workout) ui.view = { name: 'workout' };
 render();
 gpsResumeIfRunning();
+window.addEventListener('scroll', () => document.body.classList.toggle('scrolled', window.scrollY > 8), { passive: true });
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
