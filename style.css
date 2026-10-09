@@ -170,3 +170,7 @@ header.top .icon { margin-left: 8px; }
 body.timer-on #app { padding-bottom: calc(env(safe-area-inset-bottom) + 180px); }
 header.top .icon { font-size: 19px; }
 body.timer-on #toast { bottom: calc(env(safe-area-inset-bottom) + 160px); }
+.perweek { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.perweek span { font-size: 15px; color: var(--muted); }
+.perweek select { width: auto; }
+.row.end { gap: 20px; }

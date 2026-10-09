@@ -165,7 +165,8 @@ function weekCard() {
   const plan = activePlan();
   const w = logsThisWeek();
   const k = w.filter((l) => l.type === 'kraft').length, r = w.filter((l) => l.type === 'lauf').length;
-  const tk = plan ? plan.sessions.filter((s) => s.type === 'kraft').length : 0, tr = plan ? plan.sessions.filter((s) => s.type === 'lauf').length : 0;
+  const perWeek = (type) => (plan ? plan.sessions.filter((s) => s.type === type).reduce((a, s) => a + (s.perWeek || 1), 0) : 0);
+  const tk = perWeek('kraft'), tr = perWeek('lauf');
   const pill = (label, have, want, cls) => `<div class="pill ${cls} ${want && have >= want ? 'done' : ''}"><b>${have}${want ? `/${want}` : ''}</b><span>${label}</span></div>`;
   const days = [];
   const s = weekStart();
@@ -282,7 +283,7 @@ function viewPlans() {
   if (!db.plans.length) return html + `<p class="empty">Noch keine Pläne.</p>`;
   html += db.plans.map((p) => `<section class="card"><div class="row"><div><h2>${esc(p.name)}</h2><div class="muted small">${p.sessions.length} Einheiten${p.id === db.activePlanId ? ' · <b class="accent">aktiv</b>' : ''}</div></div>
     <button type="button" class="btn small" data-a="editPlan" data-id="${p.id}">Bearbeiten</button></div>
-    ${p.sessions.map((s) => `<details><summary>${esc(s.name)} <span class="muted small">${s.type === 'lauf' ? 'Laufen' : `${s.items.length} Übungen`}</span></summary>${sessionPreview(s)}</details>`).join('')}
+    ${p.sessions.map((s) => `<details><summary>${esc(s.name)} <span class="muted small">${s.type === 'lauf' ? 'Laufen' : `${s.items.length} Übungen`} · ${s.perWeek || 1}× pro Woche</span></summary>${sessionPreview(s)}</details>`).join('')}
     ${p.id !== db.activePlanId ? `<button type="button" class="btn small" data-a="activatePlan" data-id="${p.id}">Als aktiven Plan nutzen</button>` : ''}</section>`).join('');
   return html;
 }
@@ -295,16 +296,17 @@ function viewPlanEdit(id) {
   html += p.sessions.map((s, si) => `<section class="card session">
     <div class="row"><input class="title-input" data-c="sessionName" data-p="${p.id}" data-s="${si}" value="${esc(s.name)}" aria-label="Name der Einheit">
       <select data-c="sessionType" data-p="${p.id}" data-s="${si}" aria-label="Art"><option value="kraft" ${s.type === 'kraft' ? 'selected' : ''}>Kraft</option><option value="lauf" ${s.type === 'lauf' ? 'selected' : ''}>Laufen</option></select></div>
+    <label class="perweek"><span>Wie oft pro Woche?</span><select data-c="perWeek" data-p="${p.id}" data-s="${si}">${[1, 2, 3, 4, 5, 6, 7].map((n) => `<option value="${n}" ${(s.perWeek || 1) === n ? 'selected' : ''}>${n}×</option>`).join('')}</select></label>
     ${s.type === 'lauf'
       ? `<label class="field"><span>Ziel (z. B. 30 Min locker)</span><input data-c="runTarget" data-p="${p.id}" data-s="${si}" value="${esc(s.runTarget || '')}"></label>`
       : `<div class="items">${s.items.map((it, ii) => `<div class="item">
           <div class="item-top"><button type="button" class="link name" data-a="showEx" data-id="${it.exId}">${esc(exById(it.exId).name)}</button>
           <span class="move"><button type="button" class="icon sm" data-a="moveItem" data-p="${p.id}" data-s="${si}" data-i="${ii}" data-d="-1" aria-label="Nach oben">↑</button><button type="button" class="icon sm" data-a="moveItem" data-p="${p.id}" data-s="${si}" data-i="${ii}" data-d="1" aria-label="Nach unten">↓</button><button type="button" class="icon sm" data-a="swapItem" data-p="${p.id}" data-s="${si}" data-i="${ii}" aria-label="Tauschen">⇄</button><button type="button" class="icon sm" data-a="delItem" data-p="${p.id}" data-s="${si}" data-i="${ii}" aria-label="Entfernen">✕</button></span></div>
           <div class="item-fields"><label><input inputmode="numeric" data-c="itemField" data-k="sets" data-p="${p.id}" data-s="${si}" data-i="${ii}" value="${esc(it.sets)}"><span>Sätze</span></label>
-          <label><input data-c="itemField" data-k="reps" data-p="${p.id}" data-s="${si}" data-i="${ii}" value="${esc(it.reps)}"><span>Wdh</span></label>
+          <label><input data-c="itemField" data-k="reps" data-p="${p.id}" data-s="${si}" data-i="${ii}" value="${esc(it.reps)}"><span>${exById(it.exId).unit === 'sek' ? 'Sek' : 'Wdh'}</span></label>
           <label><input inputmode="decimal" data-c="itemField" data-k="weight" data-p="${p.id}" data-s="${si}" data-i="${ii}" value="${esc(it.weight)}" placeholder="–"><span>kg</span></label></div></div>`).join('')}</div>
         <button type="button" class="btn small" data-a="pickForPlan" data-p="${p.id}" data-s="${si}">+ Übung</button>`}
-    <div class="row end"><button type="button" class="link danger" data-a="delSession" data-p="${p.id}" data-s="${si}">Einheit löschen</button></div></section>`).join('');
+    <div class="row end"><button type="button" class="link" data-a="dupSession" data-p="${p.id}" data-s="${si}">Kopieren</button><button type="button" class="link danger" data-a="delSession" data-p="${p.id}" data-s="${si}">Einheit löschen</button></div></section>`).join('');
   html += `<button type="button" class="btn" data-a="addSession" data-p="${p.id}">+ Einheit hinzufügen</button>
     <button type="button" class="btn danger" data-a="delPlan" data-id="${p.id}">Plan löschen</button>`;
   return html;
@@ -597,6 +599,12 @@ const A = {
     save(); go('plaene');
   },
   addSession: (d) => { const p = planOf(d); p.sessions.push({ id: uid(), name: `Training ${String.fromCharCode(65 + p.sessions.length)}`, type: 'kraft', items: [], warmup: WARMUP.slice(), cooldown: COOLDOWN.slice() }); save(); render(); },
+  dupSession: (d) => {
+    const p = planOf(d), src = p.sessions[+d.s];
+    const copy = JSON.parse(JSON.stringify(src));
+    copy.id = uid(); copy.name = `${src.name} (Kopie)`; copy.perWeek = 1;
+    p.sessions.splice(+d.s + 1, 0, copy); save(); render(); toast('Einheit kopiert');
+  },
   delSession: async (d) => { if (!(await ask('Einheit löschen?'))) return; planOf(d).sessions.splice(+d.s, 1); save(); render(); },
   moveItem: (d) => { const items = planOf(d).sessions[+d.s].items; const i = +d.i, j = i + +d.d; if (j < 0 || j >= items.length) return; [items[i], items[j]] = [items[j], items[i]]; save(); render(); },
   delItem: (d) => { planOf(d).sessions[+d.s].items.splice(+d.i, 1); save(); render(); },
@@ -701,6 +709,7 @@ const C = {
   setField: (d, el) => { db.workout.items[+d.i].sets[+d.j][d.k] = el.value.replace('.', ','); save(); },
   planName: (d, el) => { db.plans.find((p) => p.id === d.id).name = el.value; save(); },
   sessionName: (d, el) => { planOf(d).sessions[+d.s].name = el.value; save(); },
+  perWeek: (d, el) => { planOf(d).sessions[+d.s].perWeek = +el.value; save(); },
   sessionType: (d, el) => { planOf(d).sessions[+d.s].type = el.value; save(); render(); },
   runTarget: (d, el) => { planOf(d).sessions[+d.s].runTarget = el.value; save(); },
   itemField: (d, el) => { const it = planOf(d).sessions[+d.s].items[+d.i]; it[d.k] = d.k === 'sets' ? (parseInt(el.value) || 1) : el.value; save(); },
