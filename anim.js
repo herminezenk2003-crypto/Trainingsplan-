@@ -1,5 +1,5 @@
 'use strict';
-// Schematische Übungs-Animationen: Strichmännchen in Seitenansicht (Blick nach rechts).
+// Schematische Übungs-Animationen: menschliche Figur in Seitenansicht (Blick nach rechts).
 // Jede Übung hat zwei Posen (a = Start, b = Endposition), dazwischen wird weich überblendet.
 // Pose: hip [x,y] Hüfte, t Rumpfwinkel in Grad (0 = rechts, 90 = unten, -90 = oben),
 // h1/h2 Handziel (Welt), hr1/hr2 Handziel relativ zur Schulter [entlang Rumpf, nach vorn],
@@ -122,10 +122,10 @@ const ANIM = {
 
   // ---------- Bauch & Rumpf ----------
   'plank': { tempo: [1.2, 1.6, 1.2, 1.6],
-    a: { hip: [139, 156], t: -11, h1: [215, 176], f1: [60, 172], f2: [64, 172], fd1: 100, fd2: 100 },
+    a: { hip: [139, 156], t: -11, h1: [215, 176], f1: [50, 172], f2: [54, 172], fd1: 100, fd2: 100 },
     b: { hip: [139, 158] } },
   'seitstuetz': { tempo: [0.6, 1.4, 1.2, 1.4],
-    a: { hip: [139, 172], t: -18, h1: [215, 176], f1: [60, 172], f2: [64, 172], fd1: 100, fd2: 100 },
+    a: { hip: [139, 172], t: -18, h1: [215, 176], f1: [50, 172], f2: [54, 172], fd1: 100, fd2: 100 },
     b: { hip: [139, 156], t: -11 } },
   'haengendes-knieheben': { props: [HIGH_BAR], floor: 236,
     a: { hip: [168, 130], t: -90, h1: [170, 20], f1: [168, 216], f2: [164, 216], fd1: 80, fd2: 80 },
@@ -234,6 +234,23 @@ function boundsOf(spec, A, B) {
   return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
 }
 
+// Menschliche Figur: Körperteile als abgerundete, sich verjüngende Formen mit Kontur.
+// Erst alle Konturen einer Ebene, dann die Füllungen, damit keine Nähte zwischen den Teilen sichtbar sind.
+const SKIN = '#e7b48f', SHIRT = '#2f8f7a', SHORTS = '#3c557a', SHOE = '#f3f4f2', HAIR = '#4b3426', DB = '#4f5b66';
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function capsulePath(ctx, p1, p2, w1, w2) {
+  const ang = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+  ctx.beginPath();
+  ctx.arc(p1[0], p1[1], w1 / 2, ang + Math.PI / 2, ang - Math.PI / 2);
+  ctx.arc(p2[0], p2[1], w2 / 2, ang - Math.PI / 2, ang + Math.PI / 2);
+  ctx.closePath();
+}
+const along = (p1, p2, k) => [p1[0] + (p2[0] - p1[0]) * k, p1[1] + (p2[1] - p1[1]) * k];
+
 function drawScene(ctx, spec, s, view, col) {
   const { W, H } = view;
   ctx.clearRect(0, 0, W, H);
@@ -243,7 +260,7 @@ function drawScene(ctx, spec, s, view, col) {
   const floor = spec.floor ?? 180;
   const line = (pts, w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke(); };
   // Boden
-  line([[-view.ox / view.sc, floor + 4], [(W - view.ox) / view.sc, floor + 4]], 2, col.line);
+  line([[-view.ox / view.sc, floor + 4], [(W - view.ox) / view.sc, floor + 4]], 2.5, col.prop);
   // Geräte
   (spec.props || []).forEach((pr) => {
     if (pr.type === 'bench') {
@@ -256,18 +273,81 @@ function drawScene(ctx, spec, s, view, col) {
       line([[pr.x1, pr.y], [pr.x2, pr.y]], 5, col.prop);
     } else if (pr.type === 'poly') line(pr.pts, pr.w || 8, col.prop);
   });
-  const limbW = 7;
-  const legLine = (l, c) => line([s.hip, l.knee, l.ankle, l.toe], limbW, c);
-  const armLine = (a, c) => line([s.shoulder, a.elbow, a.hand], limbW - 1, c);
-  // hintere Gliedmaßen heller
-  legLine(s.l2, col.far); armLine(s.a2, col.far);
-  line([s.hip, s.shoulder], 9, col.body);
-  ctx.fillStyle = col.body; ctx.beginPath(); ctx.arc(s.head[0], s.head[1], BODY.head, 0, Math.PI * 2); ctx.fill();
-  legLine(s.l1, col.body); armLine(s.a1, col.body);
-  // Kurzhanteln
-  const dumbbell = (p) => { line([[p[0] - 8, p[1]], [p[0] + 8, p[1]]], 3, col.db); ctx.fillStyle = col.db; ctx.fillRect(p[0] - 11, p[1] - 6, 5, 12); ctx.fillRect(p[0] + 6, p[1] - 6, 5, 12); };
-  if (spec.db === 'both') { dumbbell(s.a2.hand); dumbbell(s.a1.hand); }
-  else if (spec.db === 'one') dumbbell(s.a1.hand);
+
+  const ow = 1.6; // Konturbreite
+  // Jede Ebene ist eine Liste von Formen: ['cap', p1, p2, w1, w2, farbe] oder ['circ', p, r, farbe] oder ['head', ...]
+  const leg = (l, f) => [
+    ['circ', s.hip, 8.5, shade(SHORTS, f)],
+    ['cap', s.hip, l.knee, 16, 11, shade(SKIN, f)],
+    ['cap', s.hip, along(s.hip, l.knee, 0.62), 16.5, 13.5, shade(SHORTS, f)],
+    ['cap', l.knee, l.ankle, 11, 7, shade(SKIN, f)],
+    ['cap', l.ankle, l.toe, 8.5, 6, shade(SHOE, f)],
+  ];
+  const arm = (a, f) => [
+    ['cap', s.shoulder, a.elbow, 10, 8, shade(SKIN, f)],
+    ['cap', s.shoulder, along(s.shoulder, a.elbow, 0.45), 11.5, 10, shade(SHIRT, f)],
+    ['cap', a.elbow, a.hand, 8, 6.5, shade(SKIN, f)],
+    ['circ', a.hand, 4.4, shade(SKIN, f)],
+  ];
+  const tdir = Math.atan2(s.shoulder[1] - s.hip[1], s.shoulder[0] - s.hip[0]);
+  const front = [Math.cos(tdir + Math.PI / 2), Math.sin(tdir + Math.PI / 2)];
+  const chest = along(s.hip, s.shoulder, 0.7);
+  const chestF = [chest[0] + front[0] * 2.5, chest[1] + front[1] * 2.5];
+  const neckTop = along(s.shoulder, s.head, 0.55);
+  const torso = [
+    ['cap', s.hip, chestF, 21, 25, SHIRT],
+    ['cap', chestF, s.shoulder, 25, 18, SHIRT],
+    ['cap', s.hip, along(s.hip, s.shoulder, 0.12), 22, 21, SHORTS],
+    ['cap', s.shoulder, neckTop, 8, 7.5, SKIN],
+    ['head'],
+  ];
+  const drawLayer = (shapes) => {
+    for (const pass of ['outline', 'fill']) {
+      const grow = pass === 'outline' ? ow * 2 : 0;
+      for (const sh of shapes) {
+        ctx.fillStyle = pass === 'outline' ? col.outline : sh[sh.length - 1];
+        if (sh[0] === 'cap') { capsulePath(ctx, sh[1], sh[2], sh[3] + grow, sh[4] + grow); ctx.fill(); }
+        else if (sh[0] === 'circ') { ctx.beginPath(); ctx.arc(sh[1][0], sh[1][1], sh[2] + grow / 2, 0, Math.PI * 2); ctx.fill(); }
+        else if (sh[0] === 'head') drawHead(pass, grow);
+      }
+    }
+  };
+  const drawHead = (pass, grow) => {
+    const [hx, hy] = s.head, r = BODY.head;
+    const nose = [hx + front[0] * r, hy + front[1] * r];
+    if (pass === 'outline') {
+      ctx.fillStyle = col.outline;
+      ctx.beginPath(); ctx.ellipse(hx, hy, r + 0.8 + grow / 2, r + grow / 2, tdir, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(nose[0], nose[1], 2.2 + grow / 2, 0, Math.PI * 2); ctx.fill();
+      return;
+    }
+    ctx.fillStyle = SKIN;
+    ctx.beginPath(); ctx.ellipse(hx, hy, r + 0.8, r, tdir, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(nose[0], nose[1], 2.2, 0, Math.PI * 2); ctx.fill();
+    // Haare: Oberkopf und Hinterkopf (vom Gesicht abgewandt)
+    ctx.fillStyle = HAIR;
+    ctx.beginPath(); ctx.arc(hx, hy, r + 0.6, tdir - Math.PI * 0.62, tdir + Math.PI * 0.18); ctx.closePath(); ctx.fill();
+    // Auge
+    const eye = [hx + front[0] * r * 0.45 + Math.cos(tdir) * 1.5, hy + front[1] * r * 0.45 + Math.sin(tdir) * 1.5];
+    ctx.fillStyle = '#2a2a2a'; ctx.beginPath(); ctx.arc(eye[0], eye[1], 1.1, 0, Math.PI * 2); ctx.fill();
+  };
+  const dumbbell = (p) => {
+    for (const pass of ['outline', 'fill']) {
+      const g = pass === 'outline' ? ow : 0;
+      ctx.fillStyle = pass === 'outline' ? col.outline : DB;
+      ctx.fillRect(p[0] - 8 - g, p[1] - 1.8 - g, 16 + 2 * g, 3.6 + 2 * g);
+      ctx.fillRect(p[0] - 12 - g, p[1] - 6.5 - g, 5 + 2 * g, 13 + 2 * g);
+      ctx.fillRect(p[0] + 7 - g, p[1] - 6.5 - g, 5 + 2 * g, 13 + 2 * g);
+    }
+  };
+  // hinten: zweites Bein und Arm etwas dunkler, dann Rumpf, dann vorderes Bein und Arm
+  drawLayer(leg(s.l2, 0.72));
+  drawLayer(arm(s.a2, 0.72));
+  if (spec.db === 'both') dumbbell(s.a2.hand);
+  drawLayer(torso);
+  drawLayer(leg(s.l1, 1));
+  drawLayer(arm(s.a1, 1));
+  if (spec.db === 'both' || spec.db === 'one') dumbbell(s.a1.hand);
   else if (spec.db === 'center') dumbbell([(s.a1.hand[0] + s.a2.hand[0]) / 2, (s.a1.hand[1] + s.a2.hand[1]) / 2]);
   ctx.restore();
 }
@@ -292,7 +372,7 @@ function startExerciseAnim() {
   const view = { W, H, sc, ox: (W - bw * sc) / 2 - bb.x0 * sc, oy: (H - bh * sc) / 2 - bb.y0 * sc };
   const css = getComputedStyle(document.documentElement);
   const v = (n) => css.getPropertyValue(n).trim();
-  const col = { body: v('--text'), far: v('--muted'), line: v('--line'), prop: v('--line'), db: v('--accent') };
+  const col = { outline: v('--anim-outline'), prop: v('--anim-prop') };
   const slow = matchMedia('(prefers-reduced-motion: reduce)').matches ? 2 : 1;
   const [h0, up, h1, down] = (spec.tempo || [0.5, 1.2, 0.4, 1.2]).map((x) => x * slow);
   const total = h0 + up + h1 + down;

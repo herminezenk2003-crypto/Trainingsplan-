@@ -3,13 +3,14 @@
   --accent: #1f6f5f; --accent-soft: #e2f0ec; --run: #d0782a; --run-soft: #fbeedf; --danger: #b8423a;
   --radius: 14px; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
   --on-accent: #ffffff; --scrim: rgba(0,0,0,.4);
+  --anim-bg: #e8eeea; --anim-outline: #26302c; --anim-prop: #a3ada7;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { --bg: #111513; --card: #1b201e; --text: #e8ece9; --muted: #98a19c; --line: #2c3330;
-    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; color-scheme: dark; }
+    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; --anim-bg: #34403b; --anim-outline: #0f1412; --anim-prop: #7f8c86; color-scheme: dark; }
 }
 :root[data-theme="dark"] { --bg: #111513; --card: #1b201e; --text: #e8ece9; --muted: #98a19c; --line: #2c3330;
-    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; color-scheme: dark; }
+    --accent: #4fb39b; --accent-soft: #1d3530; --run: #e89a52; --run-soft: #3a2a1b; --danger: #e0766d; --shadow: none; --on-accent: #0d1a17; --anim-bg: #34403b; --anim-outline: #0f1412; --anim-prop: #7f8c86; color-scheme: dark; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -174,4 +175,4 @@ body.timer-on #toast { bottom: calc(env(safe-area-inset-bottom) + 160px); }
 .perweek span { font-size: 15px; color: var(--muted); }
 .perweek select { width: auto; }
 .row.end { gap: 20px; }
-canvas.anim { display: block; width: 100%; height: 200px; margin: 12px 0 4px; border-radius: 12px; background: var(--bg); }
+canvas.anim { display: block; width: 100%; height: 220px; margin: 12px 0 4px; border-radius: 12px; background: var(--anim-bg); }
