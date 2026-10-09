@@ -295,7 +295,7 @@ function viewPlans() {
   let html = header('Pläne');
   html += `<div class="btnrow"><button type="button" class="btn primary" data-a="openGenerator">Plan erstellen lassen</button><button type="button" class="btn" data-a="newPlan">Eigener Plan</button></div>`;
   if (!db.plans.length) return html + `<p class="empty">Noch keine Pläne.</p>`;
-  html += db.plans.map((p) => `<section class="card ${p.id === db.activePlanId ? 'active-plan' : ''}">${cardHead('plan', `${esc(p.name)}<small>${p.sessions.length} Einheiten${p.id === db.activePlanId ? ' · <b class="accent">aktiv</b>' : ''}</small>`, `<button type="button" class="btn small" data-a="editPlan" data-id="${p.id}">Bearbeiten</button>`)}
+  html += db.plans.map((p) => `<section class="card ${p.id === db.activePlanId ? 'active-plan' : ''}">${cardHead('plan', `${esc(p.name)}<small>${p.sessions.length} Einheiten${p.id === db.activePlanId ? ' <span class="tag">aktiv</span>' : ''}</small>`, `<button type="button" class="btn small" data-a="editPlan" data-id="${p.id}">Bearbeiten</button>`)}
     ${p.sessions.map((s) => `<details><summary>${ico(s.type === 'lauf' ? 'run' : 'dumbbell', `sm ${s.type === 'lauf' ? 'orange' : ''}`)}<span class="sum-t"><b>${esc(s.name)}</b><span class="muted small">${s.type === 'lauf' ? 'Laufen' : `${s.items.length} Übungen`} · ${s.perWeek || 1}× pro Woche</span></span></summary>${sessionPreview(s)}</details>`).join('')}
     ${p.id !== db.activePlanId ? `<button type="button" class="btn small" data-a="activatePlan" data-id="${p.id}">Als aktiven Plan nutzen</button>` : ''}</section>`).join('');
   return html;

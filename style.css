@@ -408,7 +408,7 @@ details.card summary, .card details summary { display: flex; align-items: center
 .card details { border-top-color: var(--field); padding: 10px 0; }
 .card details summary::after { content: '›'; color: var(--muted); font-size: 20px; transition: transform .2s; }
 .card details[open] summary::after { transform: rotate(90deg); }
-.card.active-plan { box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+.card.active-plan { box-shadow: var(--shadow); }
 .card-head .btn.small { width: auto; margin: 0; }
 .pill { border-radius: 18px; }
 
