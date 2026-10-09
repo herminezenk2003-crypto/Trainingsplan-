@@ -274,3 +274,93 @@ svg.route .e { fill: var(--danger); stroke: var(--card); stroke-width: 2; }
 .splits span { font-size: 12px; color: var(--muted); } .splits b { font-variant-numeric: tabular-nums; }
 .btn.gpx { margin: 0 0 14px; }
 .gpx-link { display: block; margin-top: 6px; font-size: 15px; }
+
+/* ===== Design A1: hell, ruhig, mit Kopfkarte und Symbolen ===== */
+:root { --hero-1: #1f7a66; --hero-2: #3fae8f; --blue: #3d7be0; --blue-soft: #e6eefc; --gold: #c8901a; --gold-soft: #fbf1dc; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --hero-1: #17594b; --hero-2: #2a8a72; --blue: #7aa5f0; --blue-soft: #1c2638; --gold: #e9b54a; --gold-soft: #33291a; } }
+:root[data-theme="dark"] { --hero-1: #17594b; --hero-2: #2a8a72; --blue: #7aa5f0; --blue-soft: #1c2638; --gold: #e9b54a; --gold-soft: #33291a; }
+
+.card { padding: 20px; margin-bottom: 16px; }
+.list .row { padding: 12px 0; }
+.grow { flex: 1; min-width: 0; }
+
+.ico { flex: none; width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); }
+.ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ico.sm { width: 32px; height: 32px; border-radius: 10px; } .ico.sm svg { width: 18px; height: 18px; }
+.ico.orange { background: var(--run-soft); color: var(--run); }
+.ico.blue { background: var(--blue-soft); color: var(--blue); }
+.ico.gold { background: var(--gold-soft); color: var(--gold); }
+.card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.card-head h2 { flex: 1; min-width: 0; margin: 0; }
+.card-head h2 small { display: block; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.card-head .link { padding: 4px 0; }
+.card.next .card-head .ico { width: 44px; height: 44px; border-radius: 14px; }
+.card.next .card-head h2 { font-size: 21px; }
+.list .row .ico + .grow { margin-left: -2px; }
+
+/* Heute: Kopfkarte */
+.hero { position: relative; overflow: hidden; color: #fff; border-radius: 24px; padding: 20px 20px 16px; margin: 4px 0 16px;
+  background: radial-gradient(120% 140% at 100% 0%, var(--hero-2) 0%, var(--hero-1) 60%); box-shadow: 0 10px 30px color-mix(in srgb, var(--hero-1) 30%, transparent); }
+.hero::after { content: ''; position: absolute; right: -40px; bottom: -60px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,.07); pointer-events: none; }
+.hero-top { display: flex; justify-content: space-between; gap: 12px; }
+.hero-date { font-size: 13px; opacity: .8; }
+.hero h2 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 4px; color: #fff; }
+.hero p { margin: 0 0 10px; opacity: .92; font-size: 15px; }
+.hero-streak { display: inline-block; font-size: 13px; font-weight: 600; background: rgba(255,255,255,.18); border-radius: 999px; padding: 4px 10px; }
+.hero-ring { position: relative; width: 84px; height: 84px; flex: none; }
+.ring { width: 100%; height: 100%; }
+.ring circle { fill: none; stroke-width: 8; stroke-linecap: round; }
+.ring .bg { stroke: rgba(255,255,255,.22); } .ring .fg { stroke: #fff; transition: stroke-dasharray .6s; }
+.hero-ring div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+.hero-ring b { font-size: 24px; font-weight: 800; } .hero-ring span { font-size: 11px; opacity: .85; }
+.hero-week { display: flex; justify-content: space-between; margin-top: 16px; position: relative; z-index: 1; }
+.hd { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 12px; opacity: .85; width: 36px; }
+.hd.today { opacity: 1; font-weight: 700; }
+.hd i { width: 28px; height: 28px; border-radius: 50%; border: 2px dashed rgba(255,255,255,.4); font-style: normal; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.hd.today i { border-style: solid; border-color: #fff; }
+.hd i.k, .hd i.r, .hd i.kr { border: 0; background: #fff; color: var(--hero-1); }
+.hd i.r { color: var(--run); } .hd i.kr { background: linear-gradient(135deg, #fff 50%, #ffe2c7 50%); }
+
+/* Rekorde */
+.rec { font-weight: 700; color: var(--gold); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pr { margin: 10px 0 2px; padding: 8px 12px; border-radius: 12px; background: var(--gold-soft); font-size: 14px; }
+
+/* Abzeichen und Serie */
+.streak { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--run-soft); margin-bottom: 14px; }
+.streak-flame { font-size: 28px; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px 8px; border-radius: 16px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); font: inherit; cursor: pointer; }
+.badge .bem { font-size: 28px; line-height: 1.1; filter: grayscale(1); opacity: .45; }
+.badge .bname { font-size: 11px; line-height: 1.2; text-align: center; }
+.badge.on { background: var(--gold-soft); border-color: transparent; color: var(--text); }
+.badge.on .bem { filter: none; opacity: 1; }
+.bprog { display: block; width: 70%; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.bprog i { display: block; height: 100%; background: var(--gold); border-radius: 2px; }
+
+/* Körper */
+.chips.seg { margin: 0 0 12px; gap: 6px; }
+.chips.seg .chip-btn { padding: 6px 12px; font-size: 14px; }
+.body-now { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; margin-bottom: 4px; }
+.body-now b { font-size: 34px; font-weight: 800; letter-spacing: -.02em; } .body-now > span { color: var(--muted); }
+.delta { margin-left: auto; font-size: 13px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); }
+.delta.down { color: var(--accent); background: var(--accent-soft); } .delta.up { color: var(--run); background: var(--run-soft); }
+svg.chart { display: block; width: 100%; height: auto; margin: 6px 0 4px; overflow: visible; }
+svg.chart polyline { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+svg.chart circle { fill: var(--card); stroke: var(--accent); stroke-width: 2; }
+svg.chart .grid { stroke: var(--line); stroke-dasharray: 3 4; }
+svg.chart text { font-size: 10px; fill: var(--muted); }
+.chart-empty { padding: 12px 0; }
+
+/* Feiern */
+.celebrate { text-align: center; position: relative; z-index: 1; }
+.celebrate .list { text-align: left; margin: 8px 0; }
+.cel-big { font-size: 64px; line-height: 1.1; margin: 6px 0 4px; animation: pop .5s cubic-bezier(.2,1.6,.4,1); }
+.cel-big.locked { filter: grayscale(1); opacity: .5; animation: none; }
+.celebrate h2 { padding-right: 0; }
+.cel-badges { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.cel-badges .badge { width: 96px; cursor: default; }
+@keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.confetti i { position: absolute; top: -12px; width: 8px; height: 12px; border-radius: 2px; animation: fall 2.2s ease-in forwards; opacity: .9; }
+@keyframes fall { to { transform: translateY(520px) rotate(540deg); opacity: 0; } }
+body.noscroll #toast { bottom: auto; top: calc(env(safe-area-inset-top) + 12px); }

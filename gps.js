@@ -219,9 +219,11 @@ async function importGpxFile(file) {
   if (!(await ask(`Lauf mit ${fmtNum(km)} km${min ? ` in ${fmtNum(Math.round(min))} Min` : ''} in den Verlauf übernehmen?`, 'Übernehmen'))) return;
   const run = { km, min, route: gpsRouteForLog({ pts: r.pts }) };
   if (r.splits.length) run.splits = r.splits.map((ms, i) => Math.round((ms - (r.splits[i - 1] || 0)) / 1000));
-  db.logs.push({ id: uid(), date: r.start || new Date().toISOString(), end: r.end || new Date().toISOString(), planId: null, sessionId: null,
+  const badgesBefore = earnedBadges(), logId = uid();
+  db.logs.push({ id: logId, date: r.start || new Date().toISOString(), end: r.end || new Date().toISOString(), planId: null, sessionId: null,
     name: r.name && r.name.length < 40 ? r.name : 'Laufen', type: 'lauf', items: [], run, note: '' });
   save(); render(); toast('Lauf importiert 🏃');
+  celebrateAfter(logId, badgesBefore);
 }
 function gpxButton(cls = 'btn') {
   return `<label class="${cls}">↥ Lauf aus Strava importieren (GPX)<input type="file" data-c="importGpx" hidden></label>`;

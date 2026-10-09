@@ -15,7 +15,7 @@ const fmtNum = (n) => (n == null ? '' : String(Math.round(n * 100) / 100).replac
 
 // ---------- Speicher ----------
 const KEY = 'trainingsplan.v1';
-const EMPTY = () => ({ v: 1, profile: null, customExercises: [], plans: [], activePlanId: null, logs: [], workout: null,
+const EMPTY = () => ({ v: 1, profile: null, customExercises: [], plans: [], activePlanId: null, logs: [], workout: null, body: [],
   reminder: { days: [], time: '18:00', duration: 60, alarm: 15 } });
 let db = load();
 function load() {
@@ -129,7 +129,7 @@ function lastSetsFor(exId) {
 function pace(km, min) { km = num(km); min = num(min); if (!km || !min) return ''; const p = min / km; return `${Math.floor(p)}:${pad(Math.round((p % 1) * 60))} min/km`; }
 
 // ---------- UI-Zustand ----------
-const ui = { tab: 'start', view: null, cal: new Date(), calDay: null, exGroup: '', exSearch: '', picker: null, muscle: '', mmAngle: 0 };
+const ui = { tab: 'start', view: null, cal: new Date(), calDay: null, exGroup: '', exSearch: '', picker: null, muscle: '', mmAngle: 0, bodyMetric: 'weight' };
 const TABS = [['start', 'Heute', '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>'],
   ['plaene', 'Pläne', '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'],
   ['uebungen', 'Übungen', '<path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"/>'],
@@ -175,7 +175,7 @@ function weekCard() {
     const dl = db.logs.filter((l) => dayKey(l.date) === dayKey(d));
     days.push(`<div class="wd ${dayKey(d) === dayKey(new Date()) ? 'today' : ''}"><span>${WD[d.getDay()]}</span><i class="${dl.some((l) => l.type === 'kraft') ? 'k' : ''} ${dl.some((l) => l.type === 'lauf') ? 'r' : ''}"></i></div>`);
   }
-  return `<section class="card"><h2>Diese Woche</h2><div class="pills">${pill('Kraft', k, tk, 'kraft')}${pill('Laufen', r, tr, 'lauf')}</div><div class="week">${days.join('')}</div></section>`;
+  return `<section class="card">${cardHead('flame', 'Diese Woche', '', 'orange')}<div class="pills">${pill('Kraft', k, tk, 'kraft')}${pill('Laufen', r, tr, 'lauf')}</div><div class="week">${days.join('')}</div></section>`;
 }
 function viewStart() {
   const plan = activePlan();
@@ -189,18 +189,18 @@ function viewStart() {
       <button type="button" class="btn" data-a="newPlan">Eigenen Plan bauen</button></section>
       <section class="card"><h2>Tipp</h2>${INSTALL_HELP}</section>`;
   }
-  html += weekCard();
+  html += heroCard();
   if (!plan) {
     html += `<section class="card"><p>Kein aktiver Plan ausgewählt.</p><button type="button" class="btn" data-a="tab" data-tab="plaene">Plan auswählen</button></section>`;
   } else {
     const next = nextSession(plan);
     if (next) {
-      html += `<section class="card"><div class="muted small">Als Nächstes · ${esc(plan.name)}</div><h2>${esc(next.name)}</h2>${sessionPreview(next)}
+      html += `<section class="card next">${cardHead(next.type === 'lauf' ? 'run' : 'dumbbell', `<small>Als Nächstes · ${esc(plan.name)}</small>${esc(next.name)}`, '', next.type === 'lauf' ? 'orange' : '')}${sessionPreview(next)}
         <button type="button" class="btn primary" data-a="start" data-plan="${plan.id}" data-session="${next.id}" ${db.workout ? 'disabled' : ''}>Training starten</button></section>`;
     }
     const others = plan.sessions.filter((s) => s !== next);
     if (others.length) {
-      html += `<section class="card"><h2>Andere Einheiten</h2><div class="list">${others.map((s) => `<div class="row"><div><b>${esc(s.name)}</b><div class="muted small">${s.type === 'lauf' ? esc(s.runTarget || 'Laufen') : `${s.items.length} Übungen`}</div></div><button type="button" class="btn small" data-a="start" data-plan="${plan.id}" data-session="${s.id}" ${db.workout ? 'disabled' : ''}>Starten</button></div>`).join('')}</div></section>`;
+      html += `<section class="card">${cardHead('list', 'Andere Einheiten')}<div class="list">${others.map((s) => `<div class="row">${ico(s.type === 'lauf' ? 'run' : 'dumbbell', `sm ${s.type === 'lauf' ? 'orange' : ''}`)}<div class="grow"><b>${esc(s.name)}</b><div class="muted small">${s.type === 'lauf' ? esc(s.runTarget || 'Laufen') : `${s.items.length} Übungen`}</div></div><button type="button" class="btn small" data-a="start" data-plan="${plan.id}" data-session="${s.id}" ${db.workout ? 'disabled' : ''}>Starten</button></div>`).join('')}</div></section>`;
     }
   }
   html += `<div class="btnrow"><button type="button" class="btn" data-a="quickRun" ${db.workout ? 'disabled' : ''}>🏃 Laufen</button><button type="button" class="btn" data-a="freeWorkout" ${db.workout ? 'disabled' : ''}>Freies Training</button></div>`;
@@ -278,13 +278,16 @@ async function finishWorkout() {
   if (w.type === 'kraft' && !items.length && !(await ask('Du hast noch keinen Satz abgehakt. Trotzdem beenden?'))) return;
   if (w.gps?.state === 'running' || w.gps?.state === 'paused') { if (!(await ask('GPS-Aufzeichnung beenden und Lauf speichern?'))) return; gpsStop(); }
   if (w.type === 'lauf' && !num(w.run.km) && !num(w.run.min) && !(await ask('Keine Strecke oder Zeit eingetragen. Trotzdem speichern?'))) return;
-  db.logs.push({ id: uid(), date: w.started, end: new Date().toISOString(), planId: w.planId, sessionId: w.sessionId, name: w.name, type: w.type,
+  const badgesBefore = earnedBadges();
+  const logId = uid();
+  db.logs.push({ id: logId, date: w.started, end: new Date().toISOString(), planId: w.planId, sessionId: w.sessionId, name: w.name, type: w.type,
     items, run: w.type === 'lauf' ? runForLog(w) : null, note: w.note });
   gpsCleanup();
   if (timer.target) clearTimer();
   db.workout = null; save();
   toast(w.type === 'lauf' ? 'Lauf gespeichert 🏃' : 'Training gespeichert 💪');
   go('start');
+  celebrateAfter(logId, badgesBefore);
 }
 
 // ---------- Ansicht: Pläne ----------
@@ -385,6 +388,7 @@ function exDetail(id) {
   return `<h2>${esc(ex.name)}</h2>
     <div class="muted">${esc(ex.muscles || ex.group)}${ex.equip?.length ? ` · ${ex.equip.map((q) => equipNames[q] || q).join(', ')}` : ' · ohne Geräte'}</div>
     ${trainedChips(ex)}
+    ${(() => { const r = recordFor(ex.id); return r ? `<div class="pr">🏆 Dein Rekord: <b>${esc(r.label)}</b> <span class="muted small">(${fmtDate(r.date)})</span></div>` : ''; })()}
     ${typeof ANIM !== 'undefined' && ANIM[ex.id] ? `<canvas class="anim" data-ex="${ex.id}" role="img" aria-label="Animation: ${esc(ex.name)}"></canvas>` : ''}
     ${ex.steps?.length ? `<h3>So geht's</h3><ol>${ex.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>` : ''}
     ${ex.mistakes?.length ? `<h3>Typische Fehler</h3><ul class="warn">${ex.mistakes.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}
@@ -435,7 +439,8 @@ function viewHistory() {
     <div class="cal">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => `<div class="dow">${d}</div>`).join('')}${cells}</div>
     <div class="legend"><span><b class="k"></b>Kraft</span><span><b class="r"></b>Laufen</span></div>
     <div class="stats"><div><b>${monthLogs.filter((l) => l.type === 'kraft').length}</b><span>Krafttrainings</span></div><div><b>${monthLogs.filter((l) => l.type === 'lauf').length}</b><span>Läufe</span></div><div><b>${fmtNum(km) || 0}</b><span>km gelaufen</span></div></div></section>
-    <section class="card"><h2>${ui.calDay ? fmtDate(ui.calDay) : 'Letzte Trainings'}</h2>${shown.length ? `<div class="list">${shown.map((l) => `<button type="button" class="row ex-row" data-a="showLog" data-id="${l.id}"><div><b>${esc(l.name)}</b><div class="muted small">${fmtDate(l.date)} · ${l.type === 'lauf' ? `${fmtNum(l.run?.km) || '–'} km · ${fmtNum(l.run?.min) || '–'} Min` : `${l.items.length} Übungen · ${l.items.reduce((a, i) => a + i.sets.length, 0)} Sätze`}</div></div><span class="dot ${l.type === 'lauf' ? 'r' : 'k'}"></span></button>`).join('')}</div>` : '<p class="empty">Keine Trainings.</p>'}</section>`;
+    <section class="card">${cardHead('calendar', ui.calDay ? fmtDate(ui.calDay) : 'Letzte Trainings')}${shown.length ? `<div class="list">${shown.map((l) => `<button type="button" class="row ex-row" data-a="showLog" data-id="${l.id}"><div><b>${esc(l.name)}</b><div class="muted small">${fmtDate(l.date)} · ${l.type === 'lauf' ? `${fmtNum(l.run?.km) || '–'} km · ${fmtNum(l.run?.min) || '–'} Min` : `${l.items.length} Übungen · ${l.items.reduce((a, i) => a + i.sets.length, 0)} Sätze`}</div></div><span class="dot ${l.type === 'lauf' ? 'r' : 'k'}"></span></button>`).join('')}</div>` : '<p class="empty">Keine Trainings.</p>'}</section>`
+    + recordsCard() + bodyCard() + badgesCard();
 }
 function logDetail(id) {
   const l = db.logs.find((x) => x.id === id);
@@ -606,6 +611,7 @@ function openPicker(onPick, pattern) {
 // ---------- Aktionen ----------
 const planOf = (d) => db.plans.find((p) => p.id === d.p);
 const A = {
+  ...EXTRA_ACTIONS,
   tab: (d) => go(d.tab),
   closeView: () => { ui.view = null; render(); window.scrollTo(0, 0); },
   closeModal,
