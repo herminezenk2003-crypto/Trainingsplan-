@@ -282,29 +282,44 @@ function drawScene(ctx, spec, s, view, col) {
 
   const ow = 1.6; // Konturbreite
   // Jede Ebene ist eine Liste von Formen: ['cap', p1, p2, w1, w2, farbe] oder ['circ', p, r, farbe] oder ['head', ...]
+  // Muskeln als Ellipsen auf den Gliedmaßen: k = Position entlang des Segments, off > 0 = Vorderseite
+  const muscle = (p1, p2, k, off, rx, ry, color) => {
+    const a = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+    const c = along(p1, p2, k);
+    return ['ell', [c[0] + Math.sin(a) * off, c[1] - Math.cos(a) * off], rx, ry, a, color];
+  };
   const leg = (l, f) => [
-    ['circ', s.hip, 8.5, shade(SHORTS, f)],
-    ['cap', s.hip, l.knee, 16, 11, shade(SKIN, f)],
-    ['cap', s.hip, along(s.hip, l.knee, 0.62), 16.5, 13.5, shade(SHORTS, f)],
-    ['cap', l.knee, l.ankle, 11, 7, shade(SKIN, f)],
-    ['cap', l.ankle, l.toe, 8.5, 6, shade(SHOE, f)],
+    ['circ', s.hip, 10, shade(SHORTS, f)],
+    ['cap', s.hip, l.knee, 19, 12, shade(SKIN, f)],
+    muscle(s.hip, l.knee, 0.5, 3.5, 15, 8.5, shade(SKIN, f)),   // Oberschenkel vorn
+    muscle(s.hip, l.knee, 0.45, -3, 13, 7, shade(SKIN, f)),     // Beinbeuger
+    ['cap', s.hip, along(s.hip, l.knee, 0.42), 21, 19.5, shade(SHORTS, f)],
+    ['cap', l.knee, l.ankle, 12, 7, shade(SKIN, f)],
+    muscle(l.knee, l.ankle, 0.3, -3, 10, 6.2, shade(SKIN, f)),  // Wade
+    ['cap', l.ankle, l.toe, 9, 6.5, shade(SHOE, f)],
   ];
   const arm = (a, f) => [
-    ['cap', s.shoulder, a.elbow, 10, 8, shade(SKIN, f)],
-    ['cap', s.shoulder, along(s.shoulder, a.elbow, 0.45), 11.5, 10, shade(SHIRT, f)],
-    ['cap', a.elbow, a.hand, 8, 6.5, shade(SKIN, f)],
-    ['circ', a.hand, 4.4, shade(SKIN, f)],
+    ['circ', s.shoulder, 9, shade(SKIN, f)],                    // Schulter
+    ['cap', s.shoulder, a.elbow, 12, 9, shade(SKIN, f)],
+    muscle(s.shoulder, a.elbow, 0.55, 2.8, 10, 6, shade(SKIN, f)),   // Bizeps
+    muscle(s.shoulder, a.elbow, 0.45, -2.8, 10, 5.2, shade(SKIN, f)), // Trizeps
+    ['cap', a.elbow, a.hand, 10, 6.5, shade(SKIN, f)],
+    muscle(a.elbow, a.hand, 0.3, 0.8, 8, 5.6, shade(SKIN, f)),        // Unterarm
+    ['circ', a.hand, 4.8, shade(SKIN, f)],
   ];
   const tdir = Math.atan2(s.shoulder[1] - s.hip[1], s.shoulder[0] - s.hip[0]);
   const front = [Math.cos(tdir + Math.PI / 2), Math.sin(tdir + Math.PI / 2)];
-  const chest = along(s.hip, s.shoulder, 0.7);
-  const chestF = [chest[0] + front[0] * 2.5, chest[1] + front[1] * 2.5];
-  const neckTop = along(s.shoulder, s.head, 0.55);
+  const at = (k, off) => { const c = along(s.hip, s.shoulder, k); return [c[0] + front[0] * off, c[1] + front[1] * off]; };
+  const neckTop = along(s.shoulder, s.head, 0.6);
+  // V-Form: schmale Taille, breiter Brustkorb, kräftiger Nacken. Tanktop lässt Schultern und Arme frei.
   const torso = [
-    ['cap', s.hip, chestF, 21, 25, SHIRT],
-    ['cap', chestF, s.shoulder, 25, 18, SHIRT],
-    ['cap', s.hip, along(s.hip, s.shoulder, 0.12), 22, 21, SHORTS],
-    ['cap', s.shoulder, neckTop, 8, 7.5, SKIN],
+    ['cap', s.shoulder, neckTop, 12, 9, SKIN],
+    ['cap', s.hip, at(0.62, 1), 20, 30, SHIRT],
+    ['cap', at(0.62, 1), s.shoulder, 30, 22, SHIRT],
+    ['ell', at(0.74, 6.5), 9, 7.5, tdir, SHIRT],                // Brust
+    ['ell', at(0.6, -6), 13, 6.5, tdir, SHIRT],                 // Latissimus
+    ['ell', at(0.05, -4.5), 9, 9, tdir, SHORTS],                // Po
+    ['cap', s.hip, at(0.13, 0), 22, 21, SHORTS],
     ['head'],
   ];
   const drawLayer = (shapes) => {
@@ -313,6 +328,7 @@ function drawScene(ctx, spec, s, view, col) {
       for (const sh of shapes) {
         ctx.fillStyle = pass === 'outline' ? col.outline : sh[sh.length - 1];
         if (sh[0] === 'cap') { capsulePath(ctx, sh[1], sh[2], sh[3] + grow, sh[4] + grow); ctx.fill(); }
+        else if (sh[0] === 'ell') { ctx.beginPath(); ctx.ellipse(sh[1][0], sh[1][1], sh[2] + grow / 2, sh[3] + grow / 2, sh[4], 0, Math.PI * 2); ctx.fill(); }
         else if (sh[0] === 'circ') { ctx.beginPath(); ctx.arc(sh[1][0], sh[1][1], sh[2] + grow / 2, 0, Math.PI * 2); ctx.fill(); }
         else if (sh[0] === 'head') drawHead(pass, grow);
       }
