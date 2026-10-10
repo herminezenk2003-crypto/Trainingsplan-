@@ -181,7 +181,7 @@ function viewStart() {
   const plan = activePlan();
   let html = header('Heute', null, timerBtn);
   if (db.workout) {
-    html += `<section class="card hl"><h2>Training läuft</h2><p>${esc(db.workout.name)}, gestartet um ${new Date(db.workout.started).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</p><button type="button" class="btn primary" data-a="openWorkout">Fortsetzen</button></section>`;
+    html += `<section class="card hl"><h2>Training läuft <b class="wclock-t">${fmtClock(Date.now() - new Date(db.workout.started))}</b></h2><p>${esc(db.workout.name)}, gestartet um ${new Date(db.workout.started).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</p><button type="button" class="btn primary" data-a="openWorkout">Fortsetzen</button></section>`;
   }
   if (!db.plans.length) {
     return html + `<section class="card welcome"><h2>Willkommen!</h2><p>Leg los, indem du dir einen Plan erstellen lässt oder deinen eigenen baust.</p>
@@ -234,6 +234,7 @@ function viewWorkout() {
   const w = db.workout;
   if (!w) { ui.view = null; return viewStart(); }
   let html = header(w.name, 'leaveWorkout', timerBtn);
+  html += `<div class="wclock"><span>⏱ Trainingsdauer</span><b class="wclock-t">${fmtClock(Date.now() - new Date(w.started))}</b></div>`;
   if (w.type === 'lauf') {
     if (w.runTarget) html += `<p class="run-target card">🏃 ${esc(w.runTarget)}</p>`;
     html += gpsCard(w);
@@ -285,7 +286,8 @@ async function finishWorkout() {
   gpsCleanup();
   if (timer.target) clearTimer();
   db.workout = null; save();
-  toast(w.type === 'lauf' ? 'Lauf gespeichert 🏃' : 'Training gespeichert 💪');
+  const mins = Math.round((Date.now() - new Date(w.started)) / 60000);
+  toast(`${w.type === 'lauf' ? 'Lauf gespeichert 🏃' : 'Training gespeichert 💪'}${mins > 0 && mins < 600 ? ` · ${fmtMinutes(mins)}` : ''}`);
   go('start');
   celebrateAfter(logId, badgesBefore);
 }
@@ -438,14 +440,16 @@ function viewHistory() {
     <div class="cal">${['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map((d) => `<div class="dow">${d}</div>`).join('')}${cells}</div>
     <div class="legend"><span><b class="k"></b>Kraft</span><span><b class="r"></b>Laufen</span></div>
     <div class="stats"><div><b>${monthLogs.filter((l) => l.type === 'kraft').length}</b><span>Krafttrainings</span></div><div><b>${monthLogs.filter((l) => l.type === 'lauf').length}</b><span>Läufe</span></div><div><b>${fmtNum(km) || 0}</b><span>km gelaufen</span></div></div></section>
-    <section class="card">${cardHead('calendar', ui.calDay ? fmtDate(ui.calDay) : 'Letzte Trainings')}${shown.length ? `<div class="list">${shown.map((l) => `<button type="button" class="row ex-row" data-a="showLog" data-id="${l.id}">${ico(l.type === 'lauf' ? 'run' : 'dumbbell', `sm ${l.type === 'lauf' ? 'orange' : ''}`)}<div class="grow"><b>${esc(l.name)}</b><div class="muted small">${fmtDate(l.date)} · ${l.type === 'lauf' ? `${fmtNum(l.run?.km) || '–'} km · ${fmtNum(l.run?.min) || '–'} Min` : `${l.items.length} Übungen · ${l.items.reduce((a, i) => a + i.sets.length, 0)} Sätze`}</div></div><span class="chev">›</span></button>`).join('')}</div>` : '<p class="empty">Keine Trainings.</p>'}</section>`
+    <section class="card">${cardHead('calendar', ui.calDay ? fmtDate(ui.calDay) : 'Letzte Trainings')}${shown.length ? `<div class="list">${shown.map((l) => `<button type="button" class="row ex-row" data-a="showLog" data-id="${l.id}">${ico(l.type === 'lauf' ? 'run' : 'dumbbell', `sm ${l.type === 'lauf' ? 'orange' : ''}`)}<div class="grow"><b>${esc(l.name)}</b><div class="muted small">${fmtDate(l.date)} · ${l.type === 'lauf' ? `${fmtNum(l.run?.km) || '–'} km · ${fmtNum(l.run?.min) || '–'} Min` : `${l.items.length} Übungen · ${l.items.reduce((a, i) => a + i.sets.length, 0)} Sätze${logMinutes(l) ? ` · ${fmtMinutes(logMinutes(l))}` : ''}`}</div></div><span class="chev">›</span></button>`).join('')}</div>` : '<p class="empty">Keine Trainings.</p>'}</section>`
     + recordsCard() + bodyCard() + badgesCard();
 }
+function logMinutes(l) { const m = l.end ? Math.round((new Date(l.end) - new Date(l.date)) / 60000) : 0; return m > 0 && m < 600 ? m : 0; }
+function fmtMinutes(m) { return m >= 60 ? `${Math.floor(m / 60)} Std ${pad(m % 60)} Min` : `${m} Min`; }
 function logDetail(id) {
   const l = db.logs.find((x) => x.id === id);
   if (!l) return '';
-  const dur = l.end ? Math.round((new Date(l.end) - new Date(l.date)) / 60000) : null;
-  return `<h2>${esc(l.name)}</h2><div class="muted">${fmtDate(l.date)}${dur && l.type === 'kraft' ? ` · ${dur} Min` : ''}</div>
+  const dur = logMinutes(l);
+  return `<h2>${esc(l.name)}</h2><div class="muted">${fmtDate(l.date)}${dur ? ` · ⏱ ${fmtMinutes(dur)}` : ''}</div>
     ${l.type === 'lauf' ? `<div class="stats"><div><b>${fmtNum(l.run?.km) || '–'}</b><span>km</span></div><div><b>${fmtNum(l.run?.min) || '–'}</b><span>Minuten</span></div><div><b>${pace(l.run?.km, l.run?.min).replace(' min/km', '') || '–'}</b><span>min/km</span></div></div>${l.run?.route ? routeSVG(l.run.route) : ''}${l.run?.splits?.length ? `<h3>Kilometerzeiten</h3><div class="splits">${l.run.splits.map((sec, i) => `<div><span>km ${i + 1}</span><b>${Math.floor(sec / 60)}:${pad(sec % 60)}</b></div>`).join('')}</div>` : ''}`
       : l.items.map((it) => `<h3>${esc(exById(it.exId).name)}</h3><div class="muted">${it.sets.map((s) => `${esc(s.reps || '?')}${s.weight ? ` × ${esc(s.weight)} kg` : ''}`).join(' · ')}</div>`).join('')}
     ${l.note ? `<h3>Notiz</h3><p>${esc(l.note)}</p>` : ''}
@@ -794,6 +798,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 if (db.workout) ui.view = { name: 'workout' };
 render();
 gpsResumeIfRunning();
+// Trainingsuhr: läuft automatisch vom Start bis „Training beenden“
+setInterval(() => { if (!db.workout) return; const t = fmtClock(Date.now() - new Date(db.workout.started)); document.querySelectorAll('.wclock-t').forEach((el) => { el.textContent = t; }); }, 1000);
 window.addEventListener('scroll', () => document.body.classList.toggle('scrolled', window.scrollY > 8), { passive: true });
 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -424,3 +424,9 @@ body.timer-on #toast { bottom: calc(env(safe-area-inset-bottom) + 180px); }
 
 .sheet { border-radius: 28px 28px 0 0; }
 .hero { border-radius: 26px; }
+
+/* Trainingsuhr */
+.wclock { display: flex; align-items: center; justify-content: space-between; margin: 0 0 14px; padding: 12px 18px; border-radius: 18px; background: var(--card); box-shadow: var(--shadow); }
+.wclock span { color: var(--muted); font-size: 14px; font-weight: 600; }
+.wclock b { font-size: 26px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--accent); }
+.card.hl h2 .wclock-t { float: right; font-variant-numeric: tabular-nums; color: var(--accent); }
